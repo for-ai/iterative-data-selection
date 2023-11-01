@@ -1,4 +1,4 @@
-# Efficient Data Selection
+# data-selection
 
 ## Datasets
 
