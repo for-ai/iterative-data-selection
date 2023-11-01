@@ -33,4 +33,4 @@ P3 Subset
 from datasets import load_dataset
 dataset = load_dataset('simonycl/p3_0.5_dataset')
 ```
-** Note that the dataset is set to private and ping @simonucl for access.
+The dataset is accessible in [simonycl/p3_0.5_dataset](https://huggingface.co/datasets/simonycl/p3_0.5_dataset) on HuggingFace Datasets Hub.
