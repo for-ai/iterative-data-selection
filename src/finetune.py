@@ -632,53 +632,53 @@ def main():
             )
         else:
             active_dataloader = train_dataloader
-        # for step, batch in enumerate(active_dataloader):
-        #     with accelerator.accumulate(model):
-        #         # remove the labels from the batch
-        #         outputs = model(**batch, use_cache=False)                
-        #         loss = outputs.loss
-        #         # We keep track of the loss at each logged step
-        #         total_loss += loss.detach().float()
-        #         accelerator.backward(loss)
-        #         # clip gradient norm. don't do this with deepspeed
-        #         if accelerator.sync_gradients and args.clip_grad_norm > 0:
-        #             accelerator.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
-        #         optimizer.step()
-        #         optimizer.zero_grad()
-        #         lr_scheduler.step()       
+        for step, batch in enumerate(active_dataloader):
+            with accelerator.accumulate(model):
+                # remove the labels from the batch
+                outputs = model(**batch, use_cache=False)                
+                loss = outputs.loss
+                # We keep track of the loss at each logged step
+                total_loss += loss.detach().float()
+                accelerator.backward(loss)
+                # clip gradient norm. don't do this with deepspeed
+                if accelerator.sync_gradients and args.clip_grad_norm > 0:
+                    accelerator.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+                optimizer.step()
+                optimizer.zero_grad()
+                lr_scheduler.step()       
 
-        #     # Checks if the accelerator has performed an optimization step behind the scenes
-        #     if accelerator.sync_gradients:
-        #         progress_bar.update(1)
-        #         completed_steps += 1
-        #         if args.logging_steps and completed_steps % args.logging_steps == 0:
-        #             avg_loss = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps / args.logging_steps
-        #             logger.info(f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}")
-        #             if args.with_tracking:
-        #                 accelerator.log(
-        #                     {
-        #                         "learning_rate": lr_scheduler.get_last_lr()[0],
-        #                         "train_loss": avg_loss,
-        #                     },
-        #                     step=completed_steps,
-        #                 )
-        #             total_loss = 0
+            # Checks if the accelerator has performed an optimization step behind the scenes
+            if accelerator.sync_gradients:
+                progress_bar.update(1)
+                completed_steps += 1
+                if args.logging_steps and completed_steps % args.logging_steps == 0:
+                    avg_loss = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps / args.logging_steps
+                    logger.info(f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}")
+                    if args.with_tracking:
+                        accelerator.log(
+                            {
+                                "learning_rate": lr_scheduler.get_last_lr()[0],
+                                "train_loss": avg_loss,
+                            },
+                            step=completed_steps,
+                        )
+                    total_loss = 0
                     
-        #         if isinstance(checkpointing_steps, int):
-        #             if completed_steps % checkpointing_steps == 0:
-        #                 output_dir = f"step_{completed_steps}"
-        #                 if args.output_dir is not None:
-        #                     output_dir = os.path.join(args.output_dir, output_dir)
-        #                 save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
+                if isinstance(checkpointing_steps, int):
+                    if completed_steps % checkpointing_steps == 0:
+                        output_dir = f"step_{completed_steps}"
+                        if args.output_dir is not None:
+                            output_dir = os.path.join(args.output_dir, output_dir)
+                        save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
 
-        #         if completed_steps >= args.max_train_steps:
-        #             break
+                if completed_steps >= args.max_train_steps:
+                    break
 
-        # if args.checkpointing_steps == "epoch":
-        #     output_dir = f"epoch_{epoch}"
-        #     if args.output_dir is not None:
-        #         output_dir = os.path.join(args.output_dir, output_dir)
-        #     save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
+        if args.checkpointing_steps == "epoch":
+            output_dir = f"epoch_{epoch}"
+            if args.output_dir is not None:
+                output_dir = os.path.join(args.output_dir, output_dir)
+            save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
         
         if args.do_eval:
             if epoch % args.eval_epochs == 0:
