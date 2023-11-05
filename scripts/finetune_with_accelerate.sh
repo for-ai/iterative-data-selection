@@ -6,6 +6,7 @@ BATCH_SIZE_PER_GPU=8
 EVAL_BATCH_SIZE_PER_GPU=16
 TOTAL_BATCH_SIZE=128
 MODEL_NAME_OR_PATH=facebook/galactica-1.3b
+MODEL_NAME=galactica-1.3b
 DATASET_FILE=simonycl/p3_0.5_dataset
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
@@ -38,15 +39,17 @@ accelerate launch \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 2 \
-    --output_dir output/data_selection_${MODEL_NAME_OR_PATH}_lora/ \
-    --with_tracking
-    # --report_to wandb \
-    # --logging_steps 1
+    --num_train_epochs 3 \
+    --output_dir output/data_selection_${MODEL_NAME}_lora/ \
+    --with_tracking \
+    --report_to wandb \
+    --logging_steps 1
 
 python3 src/merge_lora.py \
     --base_model_name_or_path $MODEL_NAME_OR_PATH \
-    --lora_model_name_or_path output/data_selection_${MODEL_NAME_OR_PATH}_lora/ \
-    --output_dir output/data_selection_${MODEL_NAME_OR_PATH}_lora_merged/ \
-    --push_to_hub_id simonycl/data_selection_${MODEL_NAME_OR_PATH}_lora_merged \
+    --lora_model_name_or_path output/data_selection_${MODEL_NAME}_lora/ \
+    --output_dir output/data_selection_${MODEL_NAME}_lora_merged/ \
+    --push_to_hub_id simonycl/data_selection_${MODEL_NAME}_lora_merged \
     --save_tokenizer
+
+# nohup bash scripts/finetune_with_accelerate.sh > logs/finetune_with_accelerate_${MODEL_NAME}_lora.log 2>&1 &

@@ -145,6 +145,28 @@ def get_next_word_predictions(model, tokenizer, prompts, candidate_token_ids=Non
 
 
 @torch.no_grad()
+def eval_nli_task(batch, model, tokenizer):
+    choices = [choice[0] for choice in batch["choices"]] # [(L1, L1), ..., (Ln, Ln)]
+
+    ground_truth_labels = torch.tensor([choices.index(output) for output in batch["output"]], dtype=torch.long)
+    ground_truth_labels = ground_truth_labels.to(model.device)
+
+    answer_choice_ids = [tokenizer(' ' + choice, add_special_tokens=False)['input_ids'][-1] for choice in choices]
+    answer_choice_ids = torch.tensor(answer_choice_ids, dtype=torch.long).to(model.device)
+    batch_input = tokenizer([input for input in batch["input"]], padding=True, return_tensors="pt").to(model.device)
+
+    outputs = model(input_ids=batch_input["input_ids"], attention_mask=batch_input["attention_mask"], use_cache=False)
+    
+    batch_logits = outputs.logits[:, -1, :]
+    batch_probs = torch.softmax(batch_logits, dim=-1)
+    batch_label_probs = batch_probs[:, answer_choice_ids]
+    batch_prediction_indices = torch.argmax(batch_label_probs, dim=-1) # (batch_size, )
+    batch_prediction_indices = batch_prediction_indices.detach()
+
+    return (batch_prediction_indices == ground_truth_labels).sum().float() 
+
+
+@torch.no_grad()
 def score_completions(model, tokenizer, scoring_examples, batch_size=1, aggregation="sum", disable_tqdm=False):
     '''
     Each scoring example is a dict, which contains the following keys:

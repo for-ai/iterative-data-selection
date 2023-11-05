@@ -35,7 +35,7 @@ from transformers import (
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
 from utils.save import save_with_accelerate
 from utils.template import encode_with_prompt_completion_format, encode_with_messages_format
-# from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions
+from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task
 
 logger = get_logger(__name__)
 
@@ -618,6 +618,25 @@ def main():
     # update the progress_bar if load from checkpoint
     progress_bar.update(completed_steps)
 
+    # Initial eval
+    if args.do_eval:
+        model.eval()
+        eval_acc = 0
+        for step, batch in enumerate(tqdm(eval_dataloader)):
+            with torch.no_grad():
+                eval_acc += eval_nli_task(batch, model, eval_tokenizer)
+
+        eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
+
+        logger.info(f"  Initial Eval Acc: {eval_acc}")
+        if args.with_tracking:
+            accelerator.log(
+                {
+                    "eval_acc": eval_acc,
+                },
+                step=0,
+            )
+
     for epoch in range(starting_epoch, args.num_train_epochs):
         model.train()
         total_loss = 0
@@ -632,6 +651,8 @@ def main():
             )
         else:
             active_dataloader = train_dataloader
+
+        # Main training loop
         for step, batch in enumerate(active_dataloader):
             with accelerator.accumulate(model):
                 # remove the labels from the batch
@@ -674,36 +695,14 @@ def main():
                 if completed_steps >= args.max_train_steps:
                     break
 
-        if args.checkpointing_steps == "epoch":
-            output_dir = f"epoch_{epoch}"
-            if args.output_dir is not None:
-                output_dir = os.path.join(args.output_dir, output_dir)
-            save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
-        
+        # Evaluate the model if needed
         if args.do_eval:
             if epoch % args.eval_epochs == 0:
                 model.eval()
                 eval_acc = 0
                 for step, batch in enumerate(tqdm(eval_dataloader)):
                     with torch.no_grad():
-                        choices = [choice[0] for choice in batch["choices"]] # [(L1, L1), ..., (Ln, Ln)]
-
-                        ground_truth_labels = torch.tensor([choices.index(output) for output in batch["output"]], dtype=torch.long)
-                        ground_truth_labels = ground_truth_labels.to(model.device)
-
-                        answer_choice_ids = [tokenizer(' ' + choice, add_special_tokens=False)['input_ids'][-1] for choice in choices]
-                        answer_choice_ids = torch.tensor(answer_choice_ids, dtype=torch.long).to(model.device)
-                        batch_input = eval_tokenizer([input for input in batch["input"]], padding=True, return_tensors="pt").to(model.device)
-
-                        outputs = model(input_ids=batch_input["input_ids"], attention_mask=batch_input["attention_mask"], use_cache=False)
-                        
-                        batch_logits = outputs.logits[:, -1, :]
-                        batch_probs = torch.softmax(batch_logits, dim=-1)
-                        batch_label_probs = batch_probs[:, answer_choice_ids]
-                        batch_prediction_indices = torch.argmax(batch_label_probs, dim=-1) # (batch_size, )
-                        batch_prediction_indices = batch_prediction_indices.detach()
-
-                        eval_acc += (batch_prediction_indices == ground_truth_labels).sum().float()
+                        eval_acc += eval_nli_task(batch, model, eval_tokenizer)
 
                 eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
 
@@ -711,11 +710,17 @@ def main():
                 if args.with_tracking:
                     accelerator.log(
                         {
-                            "eval_loss": eval_acc,
+                            "eval_acc": eval_acc,
                         },
                         step=epoch,
                     )
                 model.train()
+
+        if args.checkpointing_steps == "epoch":
+            output_dir = f"epoch_{epoch}"
+            if args.output_dir is not None:
+                output_dir = os.path.join(args.output_dir, output_dir)
+            save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
 
     if args.with_tracking:
         accelerator.end_training()
