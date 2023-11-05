@@ -2,11 +2,11 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 MODEL_SIZE=7B
 NUM_GPUS=2
-BATCH_SIZE_PER_GPU=8
+BATCH_SIZE_PER_GPU=4
 EVAL_BATCH_SIZE_PER_GPU=16
 TOTAL_BATCH_SIZE=128
-MODEL_NAME_OR_PATH=facebook/galactica-1.3b
-MODEL_NAME=galactica-1.3b
+MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
+MODEL_NAME=Llama-2-7b-hf
 DATASET_FILE=simonycl/p3_0.5_dataset
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
@@ -18,8 +18,9 @@ accelerate launch \
     --num_processes $NUM_GPUS \
     --use_deepspeed \
     --deepspeed_config_file ds_configs/stage3_no_offloading_accelerate.conf \
-    src/finetune.py \
+    finetune/finetune.py \
     --model_name_or_path $MODEL_NAME_OR_PATH \
+    --use_flash_attn \
     --tokenizer_name $MODEL_NAME_OR_PATH \
     --use_slow_tokenizer \
     --dataset_name $DATASET_FILE \
@@ -45,7 +46,7 @@ accelerate launch \
     --report_to wandb \
     --logging_steps 1
 
-python3 src/merge_lora.py \
+python3 finetune/merge_lora.py \
     --base_model_name_or_path $MODEL_NAME_OR_PATH \
     --lora_model_name_or_path output/data_selection_${MODEL_NAME}_lora/ \
     --output_dir output/data_selection_${MODEL_NAME}_lora_merged/ \
