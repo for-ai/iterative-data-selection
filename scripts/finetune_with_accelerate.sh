@@ -31,19 +31,21 @@ accelerate launch \
     --lr_scheduler_type linear \
     --warmup_ratio 0.03 \
     --weight_decay 0. \
+    --do_eval \
+    --eval_dataset_name rte \
     --use_lora \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
     --num_train_epochs 2 \
     --output_dir output/data_selection_${MODEL_SIZE}_lora/ \
-    --with_tracking \
-    --report_to wandb \
-    --logging_steps 1
+    --with_tracking
+    # --report_to wandb \
+    # --logging_steps 1
 
-python3 src/merge_lora.py \
-    --base_model_name_or_path $MODEL_NAME_OR_PATH \
-    --lora_model_name_or_path output/data_selection_${MODEL_SIZE}_lora/ \
-    --output_dir output/data_selection_${MODEL_SIZE}_lora_merged/ \
-    --push_to_hub_id simonycl/data_selection_${MODEL_SIZE}_lora_merged \
-    --save_tokenizer
+# python3 src/merge_lora.py \
+#     --base_model_name_or_path $MODEL_NAME_OR_PATH \
+#     --lora_model_name_or_path output/data_selection_${MODEL_SIZE}_lora/ \
+#     --output_dir output/data_selection_${MODEL_SIZE}_lora_merged/ \
+#     --push_to_hub_id simonycl/data_selection_${MODEL_SIZE}_lora_merged \
+#     --save_tokenizer

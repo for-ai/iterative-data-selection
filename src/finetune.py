@@ -15,6 +15,7 @@ from accelerate.utils import set_seed
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+import copy
 
 import transformers
 from transformers import (
@@ -34,12 +35,14 @@ from transformers import (
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
 from utils.save import save_with_accelerate
 from utils.template import encode_with_prompt_completion_format, encode_with_messages_format
+# from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions
 
 logger = get_logger(__name__)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a transformers model on a causal language modeling task")
+    # Train arguments
     parser.add_argument(
         "--dataset_name",
         type=str,
@@ -67,6 +70,36 @@ def parse_args():
         default=None,
         help="Pretrained config name or path if not the same as model_name",
     )
+
+    # Evaluation arguments
+    parser.add_argument(
+        '--do_eval',
+        action='store_true',
+        help='Run evaluation on the dev set.',
+    )
+    parser.add_argument(
+        "--eval_file", type=str, default=None, help="A csv or a json file containing the evaluation data."
+    )
+    parser.add_argument(
+        '--eval_dataset_name',
+        type=str,
+        default=None,
+        help='The name of the dataset to use (via the datasets library).',
+    )
+    parser.add_argument(
+        '--eval_epochs',
+        type=int,
+        default=1,
+        help='Number of epochs between evaluations.',
+    )
+    parser.add_argument(
+        '--eval_batch_size',
+        type=int,
+        default=2,
+        help='Batch size for evaluation.',
+    )
+        
+    # LORA arguments
     parser.add_argument(
         "--use_lora",
         action="store_true",
@@ -95,6 +128,8 @@ def parse_args():
         action="store_true",
         help="If passed, will use flash attention to train the model.",
     )
+
+    # Tokenizer and batch arguments
     parser.add_argument(
         "--tokenizer_name",
         type=str,
@@ -118,6 +153,8 @@ def parse_args():
         default=8,
         help="Batch size (per device) for the training dataloader.",
     )
+
+    # Optimizer arguments
     parser.add_argument(
         "--learning_rate",
         type=float,
@@ -148,6 +185,8 @@ def parse_args():
     parser.add_argument(
         "--warmup_ratio", type=float, default=0, help="Ratio of total training steps used for warmup."
     )
+
+    # Save and logging arguments
     parser.add_argument("--output_dir", type=str, default=None, help="Where to store the final model.")
     parser.add_argument("--seed", type=int, default=None, help="A seed for reproducible training.")
     parser.add_argument(
@@ -192,6 +231,8 @@ def parse_args():
             "Only applicable when `--with_tracking` is passed."
         ),
     )
+
+    # Advanced arguments
     parser.add_argument(
         "--low_cpu_mem_usage",
         action="store_true",
@@ -281,7 +322,6 @@ def main():
             args.dataset_config_name,
         )
         # keep only the first 1000 examples for debugging
-        raw_datasets["train"] = raw_datasets["train"].select(range(1000))
     else:
         data_files = {}
         dataset_args = {}
@@ -292,6 +332,9 @@ def main():
             data_files=data_files,
             **dataset_args,
         )
+        if args.do_eval:
+            if args.eval_file is not None:
+                data_files["test"] = args.eval_file                
 
     # Load pretrained model and tokenizer
     if args.config_name:
@@ -404,6 +447,15 @@ def main():
     
     
     with accelerator.main_process_first():
+        if args.do_eval:
+            if args.dataset_name is not None:
+                eval_dataset = raw_datasets['test']
+                if args.eval_dataset_name is not None:
+                    eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
+            else:
+                # TODO: support evaluation on a separate dataset
+                raise NotImplementedError("Evaluation on a separate dataset is not supported yet.")
+
         lm_datasets = raw_datasets.map(
             encode_function,
             batched=False,
@@ -429,6 +481,16 @@ def main():
         batch_size=args.per_device_train_batch_size
     )
 
+    if args.do_eval:
+        eval_tokenizer = copy.deepcopy(tokenizer)
+        eval_tokenizer.padding_side = "left"
+
+        eval_dataloader = DataLoader(
+            eval_dataset,
+            shuffle=False,
+            batch_size=args.eval_batch_size
+        )
+    
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
     no_decay = ["bias", "layer_norm.weight"]
@@ -480,13 +542,16 @@ def main():
         model, optimizer, train_dataloader, lr_scheduler
     )
 
+    if args.do_eval:
+        eval_dataloader = accelerator.prepare(eval_dataloader)
+
     # We need to recalculate our total training steps as the size of the training dataloader may have changed.
     num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
     if overrode_max_train_steps:
         args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
     # Afterwards we recalculate our number of training epochs
     args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
-
+ 
     # Figure out how many steps we should save the Accelerator states
     checkpointing_steps = args.checkpointing_steps
     if checkpointing_steps is not None and checkpointing_steps.isdigit():
@@ -568,6 +633,7 @@ def main():
             active_dataloader = train_dataloader
         for step, batch in enumerate(active_dataloader):
             with accelerator.accumulate(model):
+                # remove the labels from the batch
                 outputs = model(**batch, use_cache=False)                
                 loss = outputs.loss
                 # We keep track of the loss at each logged step
@@ -612,6 +678,43 @@ def main():
             if args.output_dir is not None:
                 output_dir = os.path.join(args.output_dir, output_dir)
             save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
+        
+        if args.do_eval:
+            if epoch % args.eval_epochs == 0:
+                model.eval()
+                eval_acc = 0
+                for step, batch in enumerate(tqdm(eval_dataloader)):
+                    with torch.no_grad():
+                        choices = [choice[0] for choice in batch["choices"]] # [(L1, L1), ..., (Ln, Ln)]
+
+                        ground_truth_labels = [choices.index(output) for output in batch["output"]]
+                        ground_truth_labels = torch.tensor(ground_truth_labels, dtype=torch.long).to(model.device)
+
+                        answer_choice_ids = [tokenizer(choice)['input_ids'][1] for choice in choices]
+                        answer_choice_ids = torch.tensor(answer_choice_ids, dtype=torch.long).to(model.device)
+                        batch_input = eval_tokenizer([input for input in batch["input"]], padding=True, return_tensors="pt").to(model.device)
+
+                        outputs = model(input_ids=batch_input["input_ids"], attention_mask=batch_input["attention_mask"], use_cache=False)
+                        
+                        batch_logits = outputs.logits[:, -1, :]
+                        batch_probs = torch.softmax(batch_logits, dim=-1)
+                        batch_label_probs = batch_probs[:, answer_choice_ids]
+                        batch_prediction_indices = torch.argmax(batch_label_probs, dim=-1) # (batch_size, )
+                        batch_prediction_indices = batch_prediction_indices.detach()
+
+                        eval_acc += (batch_prediction_indices == ground_truth_labels).sum().float()
+
+                eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
+
+                logger.info(f"  Epoch: {epoch}, Eval Acc: {eval_acc}")
+                if args.with_tracking:
+                    accelerator.log(
+                        {
+                            "eval_loss": eval_acc,
+                        },
+                        step=epoch,
+                    )
+                model.train()
 
     if args.with_tracking:
         accelerator.end_training()
