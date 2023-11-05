@@ -322,6 +322,7 @@ def main():
             args.dataset_config_name,
         )
         # keep only the first 1000 examples for debugging
+        # raw_datasets['train'] = raw_datasets['train'][:100]
     else:
         data_files = {}
         dataset_args = {}
@@ -391,7 +392,7 @@ def main():
 
     # no default pad token for llama!
     # here we add all special tokens again, because the default ones are not in the special_tokens_map
-    if isinstance(tokenizer, LlamaTokenizer) or isinstance(tokenizer, LlamaTokenizerFast):
+    if isinstance(tokenizer, LlamaTokenizer) or isinstance(tokenizer, LlamaTokenizerFast) or 'galactica' in args.model_name_or_path:
         num_added_tokens = tokenizer.add_special_tokens({
             "bos_token": "<s>",
             "eos_token": "</s>",
@@ -631,53 +632,53 @@ def main():
             )
         else:
             active_dataloader = train_dataloader
-        for step, batch in enumerate(active_dataloader):
-            with accelerator.accumulate(model):
-                # remove the labels from the batch
-                outputs = model(**batch, use_cache=False)                
-                loss = outputs.loss
-                # We keep track of the loss at each logged step
-                total_loss += loss.detach().float()
-                accelerator.backward(loss)
-                # clip gradient norm. don't do this with deepspeed
-                if accelerator.sync_gradients and args.clip_grad_norm > 0:
-                    accelerator.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
-                optimizer.step()
-                optimizer.zero_grad()
-                lr_scheduler.step()       
+        # for step, batch in enumerate(active_dataloader):
+        #     with accelerator.accumulate(model):
+        #         # remove the labels from the batch
+        #         outputs = model(**batch, use_cache=False)                
+        #         loss = outputs.loss
+        #         # We keep track of the loss at each logged step
+        #         total_loss += loss.detach().float()
+        #         accelerator.backward(loss)
+        #         # clip gradient norm. don't do this with deepspeed
+        #         if accelerator.sync_gradients and args.clip_grad_norm > 0:
+        #             accelerator.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+        #         optimizer.step()
+        #         optimizer.zero_grad()
+        #         lr_scheduler.step()       
 
-            # Checks if the accelerator has performed an optimization step behind the scenes
-            if accelerator.sync_gradients:
-                progress_bar.update(1)
-                completed_steps += 1
-                if args.logging_steps and completed_steps % args.logging_steps == 0:
-                    avg_loss = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps / args.logging_steps
-                    logger.info(f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}")
-                    if args.with_tracking:
-                        accelerator.log(
-                            {
-                                "learning_rate": lr_scheduler.get_last_lr()[0],
-                                "train_loss": avg_loss,
-                            },
-                            step=completed_steps,
-                        )
-                    total_loss = 0
+        #     # Checks if the accelerator has performed an optimization step behind the scenes
+        #     if accelerator.sync_gradients:
+        #         progress_bar.update(1)
+        #         completed_steps += 1
+        #         if args.logging_steps and completed_steps % args.logging_steps == 0:
+        #             avg_loss = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps / args.logging_steps
+        #             logger.info(f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}")
+        #             if args.with_tracking:
+        #                 accelerator.log(
+        #                     {
+        #                         "learning_rate": lr_scheduler.get_last_lr()[0],
+        #                         "train_loss": avg_loss,
+        #                     },
+        #                     step=completed_steps,
+        #                 )
+        #             total_loss = 0
                     
-                if isinstance(checkpointing_steps, int):
-                    if completed_steps % checkpointing_steps == 0:
-                        output_dir = f"step_{completed_steps}"
-                        if args.output_dir is not None:
-                            output_dir = os.path.join(args.output_dir, output_dir)
-                        save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
+        #         if isinstance(checkpointing_steps, int):
+        #             if completed_steps % checkpointing_steps == 0:
+        #                 output_dir = f"step_{completed_steps}"
+        #                 if args.output_dir is not None:
+        #                     output_dir = os.path.join(args.output_dir, output_dir)
+        #                 save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
 
-                if completed_steps >= args.max_train_steps:
-                    break
+        #         if completed_steps >= args.max_train_steps:
+        #             break
 
-        if args.checkpointing_steps == "epoch":
-            output_dir = f"epoch_{epoch}"
-            if args.output_dir is not None:
-                output_dir = os.path.join(args.output_dir, output_dir)
-            save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
+        # if args.checkpointing_steps == "epoch":
+        #     output_dir = f"epoch_{epoch}"
+        #     if args.output_dir is not None:
+        #         output_dir = os.path.join(args.output_dir, output_dir)
+        #     save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
         
         if args.do_eval:
             if epoch % args.eval_epochs == 0:
@@ -687,10 +688,10 @@ def main():
                     with torch.no_grad():
                         choices = [choice[0] for choice in batch["choices"]] # [(L1, L1), ..., (Ln, Ln)]
 
-                        ground_truth_labels = [choices.index(output) for output in batch["output"]]
-                        ground_truth_labels = torch.tensor(ground_truth_labels, dtype=torch.long).to(model.device)
+                        ground_truth_labels = torch.tensor([choices.index(output) for output in batch["output"]], dtype=torch.long)
+                        ground_truth_labels = ground_truth_labels.to(model.device)
 
-                        answer_choice_ids = [tokenizer(choice)['input_ids'][1] for choice in choices]
+                        answer_choice_ids = [tokenizer(' ' + choice, add_special_tokens=False)['input_ids'][-1] for choice in choices]
                         answer_choice_ids = torch.tensor(answer_choice_ids, dtype=torch.long).to(model.device)
                         batch_input = eval_tokenizer([input for input in batch["input"]], padding=True, return_tensors="pt").to(model.device)
 
