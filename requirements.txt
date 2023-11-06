@@ -1,0 +1,4 @@
+datasets
+loguru
+umap-learn
+sentence-transformers
