@@ -325,7 +325,8 @@ def main():
         # raw_datasets['train'] = raw_datasets['train'][:100]
     else:
         data_files = {}
-        dataset_args = {}
+        # only pick the top 1000 examples for debugging
+        dataset_args = {        }
         if args.train_file is not None:
             data_files["train"] = args.train_file
         raw_datasets = load_dataset(

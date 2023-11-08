@@ -102,4 +102,4 @@ wget -P data/raw_train/hard_coded/ https://beaker.org/api/v3/datasets/01HBS14BBV
 
 
 # echo "Processing datasets..."
-# python open_instruct/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/
+python data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset sharegpt
