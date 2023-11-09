@@ -19,7 +19,7 @@ accelerate launch \
     --num_machines 1 \
     --num_processes $NUM_GPUS \
     --use_deepspeed \
-    --deepspeed_config_file ds_configs/stage3_no_offloading_accelerate.conf \
+    --deepspeed_config_file ds_configs/stage3_offloading_accelerate.conf \
     finetune/finetune.py \
     --model_name_or_path $MODEL_NAME_OR_PATH \
     --use_flash_attn \

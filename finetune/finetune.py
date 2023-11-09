@@ -334,6 +334,7 @@ def main():
             data_files=data_files,
             **dataset_args,
         )
+        # raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
         if args.do_eval:
             if args.eval_file is not None:
                 data_files["test"] = args.eval_file                
