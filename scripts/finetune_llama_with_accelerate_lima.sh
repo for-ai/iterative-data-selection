@@ -6,10 +6,11 @@ BATCH_SIZE_PER_GPU=1
 EVAL_BATCH_SIZE_PER_GPU=4
 TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
+# MODEL_NAME_OR_PATH=output/data_selection_Llama-2-7b-hf-lima_lora_merged
 DATASET_FILE=simonycl/p3_0.5_dataset
-TRAIN_FILE=data/processed/sharegpt/sharegpt_data.jsonl
+TRAIN_FILE=data/processed/lima/lima_data.jsonl
 
-MODEL_NAME=Llama-2-7b-hf-sharegpt
+MODEL_NAME=Llama-2-7b-hf-lima
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
 echo "Training llama model ${MODEL_SIZE} using $NUM_GPUS GPUs, $BATCH_SIZE_PER_GPU batch size per GPU, $GRADIENT_ACC_STEPS gradient accumulation steps"
@@ -28,7 +29,7 @@ accelerate launch \
     --train_file $TRAIN_FILE \
     --max_seq_length 2048 \
     --preprocessing_num_workers 24 \
-    --checkpointing_steps 500 \
+    --checkpointing_steps epoch \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
     --learning_rate 2e-5 \
@@ -39,9 +40,10 @@ accelerate launch \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 2 \
-    --output_dir output/data_selection_${MODEL_NAME}_lora \
-    --resume_from_checkpoint output/data_selection_Llama-2-7b-hf-sharegpt_lora/step_2000 \
+    --num_train_epochs 15 \
+    --do_eval \
+    --eval_file data/processed/lima/lima_test_data.jsonl \
+    --output_dir output/data_selection_${MODEL_NAME}_lora_test \
     --with_tracking \
     --report_to wandb \
     --logging_steps 1
@@ -54,3 +56,5 @@ accelerate launch \
 #     --save_tokenizer
 
 # nohup bash scripts/finetune_llama_with_accelerate.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-sharegpt_lora_1.log 2>&1 &
+
+# nohup bash scripts/finetune_llama_with_accelerate.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-lima_lora.log 2>&1 &

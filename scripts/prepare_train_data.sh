@@ -63,25 +63,26 @@ wget -P data/raw_train/gpt4_alpaca/ https://github.com/Instruction-Tuning-with-G
 # wget -P data/raw_train/baize/ https://github.com/project-baize/baize-chatbot/raw/main/data/stackoverflow_chat_data.json
 
 
-echo "Downloading ShareGPT dataset..."
-wget -P data/raw_train/sharegpt/ https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/HTML_cleaned_raw_dataset/sg_90k_part1_html_cleaned.json
-wget -P data/raw_train/sharegpt/ https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/HTML_cleaned_raw_dataset/sg_90k_part2_html_cleaned.json
-echo "Splitting the ShareGPT dataset with 2048 max tokens per conversation..."
-python scripts/split_sharegpt_conversations.py \
-    --in-files data/raw_train/sharegpt/sg_90k_part1_html_cleaned.json data/raw_train/sharegpt/sg_90k_part2_html_cleaned.json \
-    --out-file data/raw_train/sharegpt/sharegpt_html_cleaned_and_split_2048.json \
-    --model-name-or-path meta-llama/Llama-2-7b-hf \
-    --max-length 2048
-echo "Splitting the ShareGPT dataset with 4096 max tokens per conversation..."
-python scripts/split_sharegpt_conversations.py \
-    --in-files data/raw_train/sharegpt/sg_90k_part1_html_cleaned.json data/raw_train/sharegpt/sg_90k_part2_html_cleaned.json \
-    --out-file data/raw_train/sharegpt/sharegpt_html_cleaned_and_split_4096.json \
-    --model-name-or-path meta-llama/Llama-2-7b-hf \
-    --max-length 4096
+# echo "Downloading ShareGPT dataset..."
+# wget -P data/raw_train/sharegpt/ https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/HTML_cleaned_raw_dataset/sg_90k_part1_html_cleaned.json
+# wget -P data/raw_train/sharegpt/ https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/HTML_cleaned_raw_dataset/sg_90k_part2_html_cleaned.json
+# echo "Splitting the ShareGPT dataset with 2048 max tokens per conversation..."
+# python scripts/split_sharegpt_conversations.py \
+#     --in-files data/raw_train/sharegpt/sg_90k_part1_html_cleaned.json data/raw_train/sharegpt/sg_90k_part2_html_cleaned.json \
+#     --out-file data/raw_train/sharegpt/sharegpt_html_cleaned_and_split_2048.json \
+#     --model-name-or-path meta-llama/Llama-2-7b-hf \
+#     --max-length 2048
+# echo "Splitting the ShareGPT dataset with 4096 max tokens per conversation..."
+# python scripts/split_sharegpt_conversations.py \
+#     --in-files data/raw_train/sharegpt/sg_90k_part1_html_cleaned.json data/raw_train/sharegpt/sg_90k_part2_html_cleaned.json \
+#     --out-file data/raw_train/sharegpt/sharegpt_html_cleaned_and_split_4096.json \
+#     --model-name-or-path meta-llama/Llama-2-7b-hf \
+#     --max-length 4096
 
 
 echo "Downloading LIMA dataset..."
 wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://huggingface.co/datasets/GAIR/lima/raw/main/train.jsonl
+wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lim/ https://huggingface.co/datasets/GAIR/lima/raw/main/test.jsonl
 
 
 echo "Downloading WizardLM dataset..."

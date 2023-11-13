@@ -488,6 +488,35 @@ def convert_lima_data(data_dir, output_dir, num_examples=None):
                 "id": f"lima_{idx}",
                 "messages": messages,
             }) + "\n")
+    
+    examples = []
+    with open(os.path.join(data_dir, "test.jsonl"), "r") as fin:
+        for line in fin:
+            examples.append(json.loads(line))
+    if num_examples:
+        examples = random.sample(examples, k=num_examples)
+    output_path = os.path.join(output_dir, "lima_test_data.jsonl")
+    with open(output_path, "w") as fout:
+        for idx, example in enumerate(examples):
+            messages = []
+            if not len(example["conversations"]) % 2 == 0:
+                print(f"Waring: example {idx} in LIMA has odd number of messages. Cutting off the last message.")
+                example["conversations"] = example["conversations"][:-1]
+            
+            for i in range(0, len(example["conversations"]), 2):
+                messages.append({
+                    "role": "user",
+                    "content": example["conversations"][i]
+                })
+                messages.append({
+                    "role": "assistant",
+                    "content": example["conversations"][i+1]
+                })
+            fout.write(json.dumps({
+                "dataset": "lima",
+                "id": f"lima_{idx}",
+                "messages": messages,
+            }) + "\n")
 
 
 def convert_wizardlm_data(data_dir, output_dir, num_examples=30000):

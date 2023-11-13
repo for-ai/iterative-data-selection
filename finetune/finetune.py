@@ -98,6 +98,12 @@ def parse_args():
         default=2,
         help='Batch size for evaluation.',
     )
+    parser.add_argument(
+        '--eval_task',
+        type=str,
+        default=None,
+        help='Task to evaluate on. Currently only supports "nli".',
+    )
         
     # LORA arguments
     parser.add_argument(
@@ -185,7 +191,7 @@ def parse_args():
     parser.add_argument(
         "--warmup_ratio", type=float, default=0, help="Ratio of total training steps used for warmup."
     )
-
+    
     # Save and logging arguments
     parser.add_argument("--output_dir", type=str, default=None, help="Where to store the final model.")
     parser.add_argument("--seed", type=int, default=None, help="A seed for reproducible training.")
@@ -329,15 +335,15 @@ def main():
         dataset_args = {        }
         if args.train_file is not None:
             data_files["train"] = args.train_file
+            if args.do_eval:
+                if args.eval_file is not None:
+                    data_files["test"] = args.eval_file                
         raw_datasets = load_dataset(
             "json",
             data_files=data_files,
             **dataset_args,
         )
         # raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
-        if args.do_eval:
-            if args.eval_file is not None:
-                data_files["test"] = args.eval_file                
 
     # Load pretrained model and tokenizer
     if args.config_name:
@@ -410,6 +416,12 @@ def main():
     elif isinstance(tokenizer, GPT2Tokenizer) and isinstance(model, OPTForCausalLM):
         num_added_tokens = tokenizer.add_special_tokens({'unk_token': '<unk>'})
 
+    # store the tokenizer
+    # if args.output_dir is not None:
+    #     if accelerator.is_main_process:
+    #         tokenizer.save_pretrained(args.output_dir)
+    #     accelerator.wait_for_everyone()
+
     # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
     # on a small vocab and want a smaller embedding size, remove this test.
     embedding_size = model.get_input_embeddings().weight.shape[0]
@@ -450,14 +462,13 @@ def main():
     
     
     with accelerator.main_process_first():
+        eval_dataset = None
+
         if args.do_eval:
             if args.dataset_name is not None:
                 eval_dataset = raw_datasets['test']
                 if args.eval_dataset_name is not None:
                     eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
-            else:
-                # TODO: support evaluation on a separate dataset
-                raise NotImplementedError("Evaluation on a separate dataset is not supported yet.")
 
         lm_datasets = raw_datasets.map(
             encode_function,
@@ -471,7 +482,10 @@ def main():
         lm_datasets = lm_datasets.filter(lambda example: (example['labels'] != -100).any())
 
     train_dataset = lm_datasets["train"]
+    if eval_dataset is None:
+        eval_dataset = lm_datasets["test"]
 
+    print(len(train_dataset))
     # Log a few random samples from the training set:
     for index in random.sample(range(len(train_dataset)), 3):
         logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
@@ -485,14 +499,22 @@ def main():
     )
 
     if args.do_eval:
-        eval_tokenizer = copy.deepcopy(tokenizer)
-        eval_tokenizer.padding_side = "left"
+        if args.eval_task and args.eval_task == "nli":
+            eval_tokenizer = copy.deepcopy(tokenizer)
+            eval_tokenizer.padding_side = "left"
 
-        eval_dataloader = DataLoader(
-            eval_dataset,
-            shuffle=False,
-            batch_size=args.eval_batch_size
-        )
+            eval_dataloader = DataLoader(
+                eval_dataset,
+                shuffle=False,
+                batch_size=args.eval_batch_size
+            )
+        else:
+            eval_dataloader = DataLoader(
+                eval_dataset,
+                shuffle=False,
+                collate_fn=DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model, padding="longest"),
+                batch_size=args.eval_batch_size
+            )
     
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -587,7 +609,8 @@ def main():
     if args.resume_from_checkpoint:
         if args.resume_from_checkpoint is not None or args.resume_from_checkpoint != "":
             checkpoint_path = args.resume_from_checkpoint
-            path = os.path.basename(args.resume_from_checkpoint)
+            # path = os.path.basename(args.resume_from_checkpoint)
+            path = checkpoint_path
         else:
             # Get the most recent checkpoint
             dirs = [f.name for f in os.scandir(os.getcwd()) if f.is_dir()]
@@ -601,7 +624,8 @@ def main():
         accelerator.print(f"Resumed from checkpoint: {checkpoint_path}")
         accelerator.load_state(path)
         # Extract `epoch_{i}` or `step_{i}`
-        training_difference = os.path.splitext(path)[0]
+        # training_difference = os.path.splitext(path)[0]
+        training_difference = os.path.basename(path)
 
         if "epoch" in training_difference:
             starting_epoch = int(training_difference.replace("epoch_", "")) + 1
@@ -623,21 +647,41 @@ def main():
     # Initial eval
     if args.do_eval:
         model.eval()
-        eval_acc = 0
-        for step, batch in enumerate(tqdm(eval_dataloader)):
-            with torch.no_grad():
-                eval_acc += eval_nli_task(batch, model, eval_tokenizer)
+        if args.eval_task and args.eval_task == "nli":
 
-        eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
+            eval_acc = 0
+            for step, batch in enumerate(tqdm(eval_dataloader)):
+                with torch.no_grad():
+                    eval_acc += eval_nli_task(batch, model, eval_tokenizer)
 
-        logger.info(f"  Initial Eval Acc: {eval_acc}")
-        if args.with_tracking:
-            accelerator.log(
-                {
-                    "eval_acc": eval_acc,
-                },
-                step=0,
+            eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
+
+            logger.info(f"  Initial Eval Acc: {eval_acc}")
+            if args.with_tracking:
+                accelerator.log(
+                    {
+                        "eval_acc": eval_acc,
+                    },
+                    step=0,
             )
+        else:
+            # Assume it's calculating the perplexity
+            eval_ppl = 0
+            for step, batch in enumerate(tqdm(eval_dataloader)):
+                with torch.no_grad():
+                    loss = model(**batch, use_cache=False).loss
+                    eval_ppl += torch.exp(loss)
+
+            eval_ppl = accelerator.gather(eval_ppl).sum().item() / len(eval_dataset)
+
+            logger.info(f"  Initial Eval PPL: {eval_ppl}")
+            if args.with_tracking:
+                accelerator.log(
+                    {
+                        "eval_ppl": eval_ppl,
+                    },
+                    step=0,
+                )
 
     for epoch in range(starting_epoch, args.num_train_epochs):
         model.train()
@@ -701,21 +745,41 @@ def main():
         if args.do_eval:
             if epoch % args.eval_epochs == 0:
                 model.eval()
-                eval_acc = 0
-                for step, batch in enumerate(tqdm(eval_dataloader)):
-                    with torch.no_grad():
-                        eval_acc += eval_nli_task(batch, model, eval_tokenizer)
+                if args.eval_task and args.eval_task == "nli":
 
-                eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
+                    eval_acc = 0
+                    for step, batch in enumerate(tqdm(eval_dataloader)):
+                        with torch.no_grad():
+                            eval_acc += eval_nli_task(batch, model, eval_tokenizer)
 
-                logger.info(f"  Epoch: {epoch}, Eval Acc: {eval_acc}")
-                if args.with_tracking:
-                    accelerator.log(
-                        {
-                            "eval_acc": eval_acc,
-                        },
-                        step=epoch,
-                    )
+                    eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
+
+                    logger.info(f"  Epoch: {epoch}, Eval Acc: {eval_acc}")
+                    if args.with_tracking:
+                        accelerator.log(
+                            {
+                                "eval_acc": eval_acc,
+                                
+                            },
+                            step=epoch,
+                        )
+                else:
+                    eval_ppl = 0
+                    for step, batch in enumerate(tqdm(eval_dataloader)):
+                        with torch.no_grad():
+                            loss = model(**batch, use_cache=False).loss
+                            eval_ppl += torch.exp(loss)
+
+                    eval_ppl = accelerator.gather(eval_ppl).sum().item() / len(eval_dataset)
+
+                    logger.info(f"  Epoch: {epoch}, Eval PPL: {eval_ppl}")
+                    if args.with_tracking:
+                        accelerator.log(
+                            {
+                                "eval_ppl": eval_ppl,
+                            },
+                            step=epoch,
+                        )
                 model.train()
 
         if args.checkpointing_steps == "epoch":

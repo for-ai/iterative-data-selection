@@ -27,7 +27,7 @@ pip3 install accelerate deepspeed peft bitsandbytes tokenizers evaluate
 
 conda install gh -c conda-forge
 
-pip3 install -e git+https://github.com/yizhongw/transformers.git@left_padding
+pip3 install git+https://github.com/yizhongw/transformers.git@left_padding
 
 ## export the cache
 export HF_HOME=/mnt/data/.cache/huggingface
