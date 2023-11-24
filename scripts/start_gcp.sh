@@ -13,7 +13,7 @@ cd /mnt/data
 # install anaconda
 conda activate
 
-conda create -n data-selection python==3.9
+conda create -n data-selection python==3.10
 
 conda activate data-selection
 
@@ -28,6 +28,8 @@ pip3 install accelerate deepspeed peft bitsandbytes tokenizers evaluate
 conda install gh -c conda-forge
 
 pip3 install git+https://github.com/yizhongw/transformers.git@left_padding
+
+pip install flash-attn --no-build-isolation
 
 ## export the cache
 export HF_HOME=/mnt/data/.cache/huggingface

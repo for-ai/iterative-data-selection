@@ -99,16 +99,16 @@ if __name__ == "__main__":
         print("Resizing the token embeddings of the merged model...")
         merged_model.resize_token_embeddings(len(tokenizer))
     
-    # print(f"Saving merged model to {output_dir}...")
-    # merged_model.save_pretrained(output_dir)
+    print(f"Saving merged model to {output_dir}...")
+    merged_model.save_pretrained(output_dir)
 
-    # if args.save_tokenizer:
-    #     print(f"Saving the tokenizer to {output_dir}...")
-    #     tokenizer.save_pretrained(output_dir)
+    if args.save_tokenizer:
+        print(f"Saving the tokenizer to {output_dir}...")
+        tokenizer.save_pretrained(output_dir)
 
     # push to huggingface hub
-    print(f"Uploading to HuggingFace Hub with ID {args.push_to_hub_id}...")
-    if args.push_to_hub_id:
-        merged_model.push_to_hub(args.push_to_hub_id)
-        if args.save_tokenizer:
-            tokenizer.push_to_hub(args.push_to_hub_id)
+    # print(f"Uploading to HuggingFace Hub with ID {args.push_to_hub_id}...")
+    # if args.push_to_hub_id:
+    #     merged_model.push_to_hub(args.push_to_hub_id)
+    #     if args.save_tokenizer:
+    #         tokenizer.push_to_hub(args.push_to_hub_id)

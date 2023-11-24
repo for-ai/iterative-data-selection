@@ -49,30 +49,100 @@ export CUDA_VISIBLE_DEVICES=0,1
 #     --use_chat_format \
 #     --chat_formatting_function eval.templates.create_prompt_with_llama2_chat_format \
 
-# # Evaluating tulu 7B model using chain-of-thought and chat format
+# # Evaluating sharegpt tuned LLaMA 7B model using chain-of-thought and chat format
+
+
+# python -m eval.gsm.run_eval \
+#     --data_dir data/eval/gsm/ \
+#     --max_num_examples 200 \
+#     --save_dir results/gsm/lima-ft-llama-7B-cot-0shot \
+#     --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-lima_lora_merged\
+#     --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-lima_lora_merged \
+#     --n_shot 0 \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
+#     --use_vllm
+
+# python -m eval.gsm.run_eval \
+#     --data_dir data/eval/gsm/ \
+#     --max_num_examples 200 \
+#     --save_dir results/gsm/sharegpt-ft-llama-7B-cot-0shot-2000 \
+#     --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000\
+#     --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000 \
+#     --n_shot 0 \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
+#     --use_vllm
+
+# python -m eval.gsm.run_eval \
+#     --data_dir data/eval/gsm/ \
+#     --max_num_examples 200 \
+#     --save_dir results/gsm/sharegpt-ft-llama-7B-cot-0shot-2400 \
+#     --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2400 \
+#     --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2400 \
+#     --n_shot 0 \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
+#     --use_vllm
+
+# python -m eval.gsm.run_eval \
+#     --data_dir data/eval/gsm/ \
+#     --max_num_examples 200 \
+#     --save_dir results/gsm/sharegpt-ft-llama-7B-cot-0shot-3600 \
+#     --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_3600 \
+#     --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_3600 \
+#     --n_shot 0 \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
+#     --use_vllm
+
+
+# # 5 shot version
+
 python -m eval.gsm.run_eval \
     --data_dir data/eval/gsm/ \
     --max_num_examples 200 \
-    --save_dir results/gsm/sharegpt-ft-llama-7B-cot-0shot \
-    --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000 \
-    --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000 \
-    --n_shot 0 \
+    --save_dir results/gsm/lima-ft-llama-7B-cot-5shot \
+    --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-lima_lora_merged\
+    --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-lima_lora_merged \
+    --n_shot 5 \
     --use_chat_format \
     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
     --use_vllm
 
-# Evaluating tulu 7B model using chain-of-thought and chat format
 python -m eval.gsm.run_eval \
     --data_dir data/eval/gsm/ \
     --max_num_examples 200 \
-    --save_dir results/gsm/sharegpt-ft-llama-7B-no-cot-0shot \
-    --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000 \
+    --save_dir results/gsm/sharegpt-ft-llama-7B-cot-5shot-2000 \
+    --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000\
     --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000 \
-    --n_shot 0 \
-    --no_cot \
+    --n_shot 5 \
     --use_chat_format \
     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
     --use_vllm
+
+python -m eval.gsm.run_eval \
+    --data_dir data/eval/gsm/ \
+    --max_num_examples 200 \
+    --save_dir results/gsm/sharegpt-ft-llama-7B-cot-5shot-2400 \
+    --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2400 \
+    --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2400 \
+    --n_shot 5 \
+    --use_chat_format \
+    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
+    --use_vllm
+
+python -m eval.gsm.run_eval \
+    --data_dir data/eval/gsm/ \
+    --max_num_examples 200 \
+    --save_dir results/gsm/sharegpt-ft-llama-7B-cot-5shot-3600 \
+    --model /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_3600 \
+    --tokenizer /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_3600 \
+    --n_shot 5 \
+    --use_chat_format \
+    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
+    --use_vllm
+    
 
 # # Evaluating llama2 chat model using chain-of-thought and chat format
 # python -m eval.gsm.run_eval \

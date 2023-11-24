@@ -57,4 +57,4 @@ accelerate launch \
 
 # nohup bash scripts/finetune_llama_with_accelerate.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-sharegpt_lora_1.log 2>&1 &
 
-# nohup bash scripts/finetune_llama_with_accelerate.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-lima_lora.log 2>&1 &
+# nohup bash scripts/finetune_llama_with_accelerate_lima.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-lima_lora.log 2>&1 &
