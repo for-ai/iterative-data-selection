@@ -15,4 +15,4 @@ class Random(CoresetMethod):
     def select(self):
         # Ensure unique selection of indices
         ranking = np.random.permutation(np.arange(len(self.dataset)))
-        return {'ranking': ranking}
+        return {'ranking': ranking, 'indices': ranking[:self.coreset_size]}
