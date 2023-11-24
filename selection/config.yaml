@@ -1,0 +1,15 @@
+dataset:
+  name: 'simonycl/p3_0.5_dataset'
+  split: 'train'
+  args:
+    label_column: 'dataset'
+    data_column: 'input'
+
+coreset_method:
+  # Supported: Uniform, Random, KMeansCentroids
+  name: 'Uniform'
+  # name: 'Random'
+  # name: 'KMeansCentroids'
+  args:
+    fraction: 0.5
+    random_seed: 42

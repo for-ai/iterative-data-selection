@@ -45,3 +45,10 @@ bash scripts/finetune_galactica_with_accelerate.sh
 # LLaMA-2-7B 
 bash scripts/finetune_llama_with_accelerate.sh
 ```
+
+## Coreset Selection
+Modify `selection/config.yaml` to change the dataset and coreset method settings.
+```bash
+cd selection
+python main.py
+```
