@@ -35,7 +35,7 @@ from transformers import (
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
 from utils.save import save_with_accelerate
 from utils.template import encode_with_prompt_completion_format, encode_with_messages_format
-from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task
+from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task, score_completions
 
 logger = get_logger(__name__)
 
@@ -391,15 +391,6 @@ def main():
                 use_flash_attention_2=True if args.use_flash_attn else False,
             )
         else:
-            # if args.resume_from_checkpoint:
-            #     model = AutoModelForCausalLM.from_pretrained(
-            #         args.resume_from_checkpoint,
-            #         from_tf=bool(".ckpt" in args.resume_from_checkpoint),
-            #         config=config,
-            #         low_cpu_mem_usage=args.low_cpu_mem_usage,
-            #         use_flash_attention_2=True if args.use_flash_attn else False,
-            #     )
-            # else:
             model = AutoModelForCausalLM.from_pretrained(
                 args.model_name_or_path,
                 from_tf=bool(".ckpt" in args.model_name_or_path),
@@ -485,12 +476,13 @@ def main():
     with accelerator.main_process_first():
         # eval_dataset = None
 
-        # if args.do_eval:
-        #     # Specifically for P3 dataset
-        #     if args.dataset_name is not None:
-        #         eval_dataset = raw_datasets['test']
-        #         if args.eval_dataset_name is not None:
-        #             eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
+        if args.do_eval:
+            # Specifically for P3 dataset
+            if args.dataset_name is not None:
+                eval_dataset = raw_datasets['test']
+                # Filtering if only want to specific dataset
+                if args.eval_dataset_name is not None:
+                    eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
 
         lm_datasets = raw_datasets.map(
             encode_function,
@@ -705,8 +697,13 @@ def main():
                     {
                         "eval_acc": eval_acc,
                     },
-                    step=0,
+                    step=completed_steps,
             )
+        elif "output" in raw_datasets["train"].column_names:
+            eval_score = 0
+            for step, batch in enumerate(tqdm(eval_dataloader)):
+                with torch.no_grad():
+                    eval_score += get_next_word_predictions(batch, model, eval_tokenizer)
         else:
             # Assume it's calculating the perplexity
             eval_ppl = 0
@@ -723,7 +720,7 @@ def main():
                     {
                         "eval_ppl": eval_ppl,
                     },
-                    step=0,
+                    step=completed_steps,
                 )
 
     for epoch in range(starting_epoch, args.num_train_epochs):

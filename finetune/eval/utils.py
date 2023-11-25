@@ -165,6 +165,65 @@ def eval_nli_task(batch, model, tokenizer):
 
     return (batch_prediction_indices == ground_truth_labels).sum().float() 
 
+@torch.no_grad()
+def score_qa_task(model, tokenizer, scoring_examples, batch_size=1, aggregation="mul", disable_tqdm=False):
+    '''
+    Each scoring example is a dict, which contains the following keys:
+    - input: the input to score
+    - output: the output to score
+    '''
+
+    # unroll the scoring examples
+    unrolled_examples = []
+    for scoring_example in scoring_examples:
+        input = scoring_example["input"]
+        choices = scoring_example["choices"]
+        label = choices.index(scoring_example["output"])
+        unrolled_examples.append({
+            "input": input,
+            "choices": choices,
+            "label": label
+        })
+
+    if not disable_tqdm:
+        progress = tqdm.tqdm(total=len(unrolled_examples), desc="Scoring QA")
+
+    accuracies = []
+    for i in range(0, len(unrolled_examples), batch_size):
+        batch_prompts = [example["input"] for example in unrolled_examples[i:i+batch_size]]
+        tokenized_batch = tokenizer(batch_prompts, padding="longest", return_tensors="pt")
+        if model.device.type == "cuda":
+            tokenized_batch = {
+                key: value.cuda() for key, value in tokenized_batch.items()
+            }
+        outputs = model(**tokenized_batch)
+
+        for example_idx, (prompt, example) in enumerate(zip(batch_prompts, unrolled_examples[i:i+batch_size])):
+            
+            tokenized_prompt = tokenizer(prompt["input"], padding=False, return_tensors="pt").input_ids.squeeze(0) # (prompt_length, )
+            tokenized_choices = tokenizer(example["choices"], padding="longest", return_tensors="pt").input_ids # (num_choices, prompt_length)
+            choices_mask = tokenized_choices != tokenizer.pad_token_id # (num_choices, prompt_length)
+            output_logit = outputs.logits[example_idx, :, :].unsqueeze(0).expand(tokenized_choices.shape[0], -1, -1) # (num_choices, prompt_length, vocab_size)
+
+            if tokenizer.padding_side == "right":
+                completion_logits = output_logit[:, len(tokenized_prompt)-1:len(tokenized_prompt)-1+len(tokenized_choices[0]), :] # (num_choices, num_tokens, vocab_size)
+
+                # select the token likelihoods for the choices, in the shapre of (num_choices, num_tokens)
+                completion_log_probs = torch.gather(completion_logits, dim=-1, index=tokenized_choices.unsqueeze(-1)).squeeze(-1) # (num_choices, num_tokens)
+                # mask out the padding tokens
+                completion_log_probs[~choices_mask] = 0
+                # log sum exp
+                completion_log_probs = torch.logsumexp(completion_log_probs, dim=-1) # (num_choices, )
+                pred = torch.argmax(completion_log_probs).item() # (1, )
+
+            label = example["label"]
+            accuracies.append(int(pred == label))
+
+        if not disable_tqdm:
+            progress.update(len(batch_prompts))
+
+    return sum(accuracies) / len(accuracies)
+
 
 @torch.no_grad()
 def score_completions(model, tokenizer, scoring_examples, batch_size=1, aggregation="sum", disable_tqdm=False):

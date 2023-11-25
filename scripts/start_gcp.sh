@@ -32,6 +32,8 @@ pip3 install git+https://github.com/yizhongw/transformers.git@left_padding
 pip install flash-attn --no-build-isolation
 
 ## export the cache
+conda activate /mnt/data/selection
+
 export HF_HOME=/mnt/data/.cache/huggingface
 export HF_TRANSFORMERS_CACHE=/mnt/data/.cache/transformers
 export HF_DATASETS_CACHE=/mnt/data/.cache/datasets

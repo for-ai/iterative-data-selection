@@ -46,7 +46,7 @@ accelerate launch \
     --eval_file data/processed/ultrachat/test_200.jsonl \
     --eval_steps 100 \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
-    --resume_from_checkpoint /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora/step_2800 \
+    --resume_from_checkpoint /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora/step_3800 \
     --output_dir output/data_selection_${MODEL_NAME}_lora \
     --with_tracking \
     --logging_steps 1 \

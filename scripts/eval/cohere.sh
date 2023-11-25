@@ -11,40 +11,40 @@ MODEL_NAME=sharegpt-3000-ft-llama-7B
 export OPENAI_API_KEY=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
 
 ## GSM8K 8 shot
-python -m eval.gsm.run_eval \
-    --data_dir data/eval/gsm/ \
-    --max_num_examples 200 \
-    --save_dir results/gsm/${MODEL_NAME}-cot-8shot \
-    --model $CHECKPOINT_PATH \
-    --tokenizer $CHECKPOINT_PATH \
-    --n_shot 8 \
-    --use_chat_format \
-    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
-    --use_vllm
+# python -m eval.gsm.run_eval \
+#     --data_dir data/eval/gsm/ \
+#     --max_num_examples 200 \
+#     --save_dir results/gsm/${MODEL_NAME}-cot-8shot \
+#     --model $CHECKPOINT_PATH \
+#     --tokenizer $CHECKPOINT_PATH \
+#     --n_shot 8 \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format \
+#     --use_vllm
 
-# ## MMLU 0 shot
-python -m eval.mmlu.run_eval \
-    --ntrain 0 \
-    --data_dir data/eval/mmlu \
-    --save_dir results/mmlu/${MODEL_NAME}-0shot \
-    --model_name_or_path $CHECKPOINT_PATH \
-    --tokenizer_name_or_path $CHECKPOINT_PATH \
-    --eval_batch_size 4 \
-    --load_in_8bit \
-    --use_chat_format \
-    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
-
-# # MMLU 5 shot
+# # ## MMLU 0 shot
 # python -m eval.mmlu.run_eval \
-#     --ntrain 5 \
+#     --ntrain 0 \
 #     --data_dir data/eval/mmlu \
-#     --save_dir results/mmlu/${MODEL_NAME}-5shot \
+#     --save_dir results/mmlu/${MODEL_NAME}-0shot \
 #     --model_name_or_path $CHECKPOINT_PATH \
 #     --tokenizer_name_or_path $CHECKPOINT_PATH \
 #     --eval_batch_size 4 \
 #     --load_in_8bit \
 #     --use_chat_format \
 #     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
+
+# # MMLU 5 shot
+python -m eval.mmlu.run_eval \
+    --ntrain 5 \
+    --data_dir data/eval/mmlu \
+    --save_dir results/mmlu/${MODEL_NAME}-5shot \
+    --model_name_or_path $CHECKPOINT_PATH \
+    --tokenizer_name_or_path $CHECKPOINT_PATH \
+    --eval_batch_size 4 \
+    --load_in_8bit \
+    --use_chat_format \
+    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
 
 # # TruthfulQA
 # python -m eval.truthfulqa.run_eval \
