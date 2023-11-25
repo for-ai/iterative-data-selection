@@ -35,7 +35,7 @@ from transformers import (
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
 from utils.save import save_with_accelerate
 from utils.template import encode_with_prompt_completion_format, encode_with_messages_format
-from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task, score_completions
+from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task, score_completions, score_qa_task
 
 logger = get_logger(__name__)
 
@@ -328,7 +328,7 @@ def main():
             args.dataset_config_name,
         )
         # keep only the first 1000 examples for debugging
-        # raw_datasets['train'] = raw_datasets['train'][:100]
+        raw_datasets['train'] = raw_datasets['train'].shard(100, 1)
     else:
         data_files = {}
         # only pick the top 1000 examples for debugging
@@ -340,7 +340,7 @@ def main():
             data_files=data_files,
             **dataset_args,
         )
-        # raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
+        raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
 
     eval_data = None
     if args.do_eval:
@@ -481,6 +481,7 @@ def main():
             if args.dataset_name is not None:
                 eval_dataset = raw_datasets['test']
                 # Filtering if only want to specific dataset
+                eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == "rte")
                 if args.eval_dataset_name is not None:
                     eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
 
@@ -496,22 +497,23 @@ def main():
         lm_datasets = lm_datasets.filter(lambda example: (example['labels'] != -100).any())
 
         if args.do_eval:
-            eval_dataset = eval_raw_dataset.map(
-                encode_function,
-                batched=False,
-                num_proc=args.preprocessing_num_workers,
-                load_from_cache_file=not args.overwrite_cache,
-                remove_columns=[name for name in eval_raw_dataset["test"].column_names if name not in ["input_ids", "labels", "attention_mask"]],
-                desc="Tokenizing and reformatting instruction data",
-            )
-            eval_dataset.set_format(type="pt")
-            eval_dataset = eval_dataset.filter(lambda example: (example['labels'] != -100).any())
+            if args.eval_file is not None:
+                eval_dataset = eval_raw_dataset.map(
+                    encode_function,
+                    batched=False,
+                    num_proc=args.preprocessing_num_workers,
+                    load_from_cache_file=not args.overwrite_cache,
+                    remove_columns=[name for name in eval_raw_dataset["test"].column_names if name not in ["input_ids", "labels", "attention_mask"]],
+                    desc="Tokenizing and reformatting instruction data",
+                )
+                eval_dataset.set_format(type="pt")
+                eval_dataset = eval_dataset.filter(lambda example: (example['labels'] != -100).any())
 
     train_dataset = lm_datasets["train"]
     if eval_dataset is None:
         eval_dataset = lm_datasets["test"]
-    else:
-        eval_dataset = eval_dataset["test"]
+    # else:
+    #     eval_dataset = eval_dataset["test"]
 
     print(len(train_dataset))
     # Log a few random samples from the training set:
@@ -700,10 +702,16 @@ def main():
                     step=completed_steps,
             )
         elif "output" in raw_datasets["train"].column_names:
-            eval_score = 0
-            for step, batch in enumerate(tqdm(eval_dataloader)):
-                with torch.no_grad():
-                    eval_score += get_next_word_predictions(batch, model, eval_tokenizer)
+            if accelerator.is_main_process:
+                eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
+                logger.info(f"  Initial Eval Acc: {eval_acc}")
+                if args.with_tracking:
+                    accelerator.log(
+                        {
+                            "eval_acc": eval_acc,
+                        },
+                        step=completed_steps,
+                    )
         else:
             # Assume it's calculating the perplexity
             eval_ppl = 0
@@ -802,6 +810,17 @@ def main():
                                     },
                                     step=completed_steps,
                                 )
+                        elif "output" in raw_datasets["train"].column_names:
+                            if accelerator.is_main_process:
+                                eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
+                                logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
+                                if args.with_tracking:
+                                    accelerator.log(
+                                        {
+                                            "eval_acc": eval_acc,
+                                        },
+                                        step=completed_steps,
+                                    )
                         else:
                             eval_ppl = 0
                             for step, batch in enumerate(tqdm(eval_dataloader)):

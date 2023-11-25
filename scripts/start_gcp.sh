@@ -13,9 +13,9 @@ cd /mnt/data
 # install anaconda
 conda activate
 
-conda create -n data-selection python==3.10
+conda create -p /mnt/ceph_rbd/selection python==3.10
 
-conda activate data-selection
+conda activate /mnt/ceph_rbd/selection
 
 pip3 install torch torchvision torchaudio scipy packaging sentencepiece datasets transformers accelerate wandb
 
