@@ -328,7 +328,6 @@ def main():
             args.dataset_config_name,
         )
         # keep only the first 1000 examples for debugging
-        raw_datasets['train'] = raw_datasets['train'].shard(100, 1)
     else:
         data_files = {}
         # only pick the top 1000 examples for debugging
@@ -340,7 +339,7 @@ def main():
             data_files=data_files,
             **dataset_args,
         )
-        raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
+    # raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
 
     eval_data = None
     if args.do_eval:
@@ -481,7 +480,7 @@ def main():
             if args.dataset_name is not None:
                 eval_dataset = raw_datasets['test']
                 # Filtering if only want to specific dataset
-                eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == "rte")
+                eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == "hellaswag")
                 if args.eval_dataset_name is not None:
                     eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
 
