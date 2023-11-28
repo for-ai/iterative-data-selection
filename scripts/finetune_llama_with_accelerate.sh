@@ -33,10 +33,10 @@ accelerate launch \
     --checkpointing_steps 200 \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
-    --learning_rate 2e-5 \
+    --learning_rate 1e-5 \
     --lr_scheduler_type linear \
     --warmup_ratio 0.00 \
-    --weight_decay 0.00 \
+    --weight_decay 0.10 \
     --use_lora \
     --lora_rank 64 \
     --lora_alpha 16 \
@@ -46,10 +46,10 @@ accelerate launch \
     --eval_file data/processed/ultrachat/test_200.jsonl \
     --eval_steps 100 \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
-    --resume_from_checkpoint /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora/step_3800 \
+    --resume_from_checkpoint /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora/step_7800 \
     --output_dir output/data_selection_${MODEL_NAME}_lora \
     --with_tracking \
-    --logging_steps 1 \
+    --logging_steps 10 \
     --report_to wandb
 
 # python3 finetune/merge_lora.py \
