@@ -178,7 +178,7 @@ def score_qa_task(model, tokenizer, scoring_examples, batch_size=1, aggregation=
     for scoring_example in scoring_examples:
         input = scoring_example["input"]
         choices = scoring_example["choices"]
-        label = choices.index(scoring_example["output"])
+        label = choices.index(scoring_example["output"].strip())
         unrolled_examples.append({
             "input": input,
             "choices": choices,
@@ -200,14 +200,22 @@ def score_qa_task(model, tokenizer, scoring_examples, batch_size=1, aggregation=
 
         for example_idx, (prompt, example) in enumerate(zip(batch_prompts, unrolled_examples[i:i+batch_size])):
             
-            tokenized_prompt = tokenizer(prompt["input"], padding=False, return_tensors="pt").input_ids.squeeze(0) # (prompt_length, )
+            tokenized_prompt = tokenizer(example["input"], padding=False, return_tensors="pt").input_ids.squeeze(0) # (prompt_length, )
             tokenized_choices = tokenizer(example["choices"], padding="longest", return_tensors="pt").input_ids # (num_choices, prompt_length)
+            # drop the first token of each choice, which is the space token
+            tokenized_choices = tokenized_choices[:, 1:]
+            
+            tokenized_choices = tokenized_choices.to(model.device)
+
             choices_mask = tokenized_choices != tokenizer.pad_token_id # (num_choices, prompt_length)
             output_logit = outputs.logits[example_idx, :, :].unsqueeze(0).expand(tokenized_choices.shape[0], -1, -1) # (num_choices, prompt_length, vocab_size)
 
             if tokenizer.padding_side == "right":
-                completion_logits = output_logit[:, len(tokenized_prompt)-1:len(tokenized_prompt)-1+len(tokenized_choices[0]), :] # (num_choices, num_tokens, vocab_size)
+                completion_logits = output_logit[:, len(tokenized_prompt)-1:len(tokenized_prompt)+len(tokenized_choices[0]), :] # (num_choices, num_tokens, vocab_size)
 
+                tokenized_choices = tokenized_choices[:, :completion_logits.shape[1]] # (num_choices, num_tokens)
+                choices_mask = choices_mask[:, :completion_logits.shape[1]] # (num_choices, num_tokens)
+                
                 # select the token likelihoods for the choices, in the shapre of (num_choices, num_tokens)
                 completion_log_probs = torch.gather(completion_logits, dim=-1, index=tokenized_choices.unsqueeze(-1)).squeeze(-1) # (num_choices, num_tokens)
                 # mask out the padding tokens
