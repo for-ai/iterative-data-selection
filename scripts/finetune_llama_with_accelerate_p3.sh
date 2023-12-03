@@ -43,8 +43,8 @@ accelerate launch \
     --num_train_epochs 3 \
     --do_eval \
     --eval_steps 1000 \
+    --selection_indices /mnt/ceph_rbd/data-selection/selection/subset_indices.pkl \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
-    --resume_from_checkpoint /mnt/ceph_rbd/data-selection/output/data_selection_Llama-2-7b-hf-p3_lora/step_10000 \
     --output_dir output/data_selection_${MODEL_NAME}_lora \
     --with_tracking \
     --logging_steps 10 \

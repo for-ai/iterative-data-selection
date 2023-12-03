@@ -179,6 +179,7 @@ def score_qa_task(model, tokenizer, scoring_examples, batch_size=1, aggregation=
         for scoring_example in scoring_examples:
             input = scoring_example["input"]
             choices = scoring_example["choices"]
+            label = choices.index(scoring_example["output"].strip())
             unrolled_examples.append({
                 "input": input,
                 "choices": choices,

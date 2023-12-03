@@ -16,6 +16,7 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 import copy
+import pickle
 
 import transformers
 from transformers import (
@@ -69,6 +70,21 @@ def parse_args():
         type=str,
         default=None,
         help="Pretrained config name or path if not the same as model_name",
+    )
+
+    # Selection arguments
+    parser.add_argument(
+        '--selection_method',
+        type=str,
+        default=None,
+        help='The selection method to use.',
+        choices=["random", "uncertainty", "diversity", "uncertainty_diversity", "uncertainty_diversity_random"],
+    )
+    parser.add_argument(
+        '--selection_indices',
+        type=str,
+        default=None,
+        help='The path to the indices of the selected examples.',
     )
 
     # Evaluation arguments
@@ -339,6 +355,9 @@ def main():
             data_files=data_files,
             **dataset_args,
         )
+    if args.selection_indices is not None:
+        selection = pickle.load(open(args.selection_indices, "rb"))
+        raw_datasets['train'] = raw_datasets['train'].select(selection['indices'])
     # raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
 
     eval_data = None
