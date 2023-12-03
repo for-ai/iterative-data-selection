@@ -763,97 +763,110 @@ def main():
 
         # Main training loop
         for step, batch in enumerate(active_dataloader):
-            with accelerator.accumulate(model):
-                # remove the labels from the batch
-                outputs = model(**batch, use_cache=False)                
+            try:
+                with accelerator.accumulate(model):
+                    # remove the labels from the batch
+                    outputs = model(**batch, use_cache=False)                
+                    loss = outputs.loss
+                    # We keep track of the loss at each logged step
+                    total_loss += loss.detach().float()
+                    accelerator.backward(loss)
+                    # clip gradient norm. don't do this with deepspeed
+                    if accelerator.sync_gradients and args.clip_grad_norm > 0:
+                        accelerator.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    lr_scheduler.step()
+
+                # Checks if the accelerator has performed an optimization step behind the scenes
+                if accelerator.sync_gradients:
+                    progress_bar.update(1)
+                    completed_steps += 1
+                    if args.logging_steps and completed_steps % args.logging_steps == 0:
+                        avg_loss = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps / args.logging_steps
+                        logger.info(f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}")
+                        if args.with_tracking:
+                            accelerator.log(
+                                {
+                                    "learning_rate": lr_scheduler.get_last_lr()[0],
+                                    "train_loss": avg_loss,
+                                },
+                                step=completed_steps,
+                            )
+                        total_loss = 0
+                        
+                    if isinstance(checkpointing_steps, int):
+                        if completed_steps % checkpointing_steps == 0:
+                            output_dir = f"step_{completed_steps}"
+                            if args.output_dir is not None:
+                                output_dir = os.path.join(args.output_dir, output_dir)
+                            save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
+
+                    if completed_steps >= args.max_train_steps:
+                        break
+            # Except any errors
+            except Exception as e:
+                print(e)
+                unwrapped_model = accelerator.unwrap_model(model)
+                outputs = unwrapped_model(**batch, use_cache=False)
                 loss = outputs.loss
-                # We keep track of the loss at each logged step
-                total_loss += loss.detach().float()
-                accelerator.backward(loss)
-                # clip gradient norm. don't do this with deepspeed
-                if accelerator.sync_gradients and args.clip_grad_norm > 0:
-                    accelerator.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
-                optimizer.step()
-                optimizer.zero_grad()
-                lr_scheduler.step()
-
-            # Checks if the accelerator has performed an optimization step behind the scenes
-            if accelerator.sync_gradients:
-                progress_bar.update(1)
-                completed_steps += 1
-                if args.logging_steps and completed_steps % args.logging_steps == 0:
-                    avg_loss = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps / args.logging_steps
-                    logger.info(f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}")
-                    if args.with_tracking:
-                        accelerator.log(
-                            {
-                                "learning_rate": lr_scheduler.get_last_lr()[0],
-                                "train_loss": avg_loss,
-                            },
-                            step=completed_steps,
-                        )
-                    total_loss = 0
-                    
-                if isinstance(checkpointing_steps, int):
-                    if completed_steps % checkpointing_steps == 0:
-                        output_dir = f"step_{completed_steps}"
-                        if args.output_dir is not None:
-                            output_dir = os.path.join(args.output_dir, output_dir)
-                        save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
-
-                if completed_steps >= args.max_train_steps:
-                    break
+                # output and stop
+                print("outputs", outputs)
+                print("loss", loss)
+                print("Failed to train on step", step)
+                import sys
+                sys.exit(1)
 
             # Evaluate the model if needed
-                if args.do_eval:
-                    if isinstance(eval_steps, int) and completed_steps % eval_steps == 0:
-                        model.eval()
-                        if args.eval_task and args.eval_task == "nli":
-                            eval_acc = 0
-                            for step, batch in enumerate(tqdm(eval_dataloader)):
-                                with torch.no_grad():
-                                    eval_acc += eval_nli_task(batch, model, eval_tokenizer)
+            if args.do_eval:
+                if isinstance(eval_steps, int) and completed_steps % eval_steps == 0:
+                    model.eval()
+                    if args.eval_task and args.eval_task == "nli":
+                        eval_acc = 0
+                        for step, batch in enumerate(tqdm(eval_dataloader)):
+                            with torch.no_grad():
+                                eval_acc += eval_nli_task(batch, model, eval_tokenizer)
 
-                            eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataloader)
+                        eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataloader)
 
+                        logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
+                        if args.with_tracking:
+                            accelerator.log(
+                                {
+                                    "eval_acc": eval_acc,
+                                    
+                                },
+                                step=completed_steps,
+                            )
+                    elif "output" in raw_datasets["train"].column_names:
+                        if accelerator.is_main_process:
+                            eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
                             logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
                             if args.with_tracking:
                                 accelerator.log(
                                     {
                                         "eval_acc": eval_acc,
-                                        
                                     },
                                     step=completed_steps,
                                 )
-                        elif "output" in raw_datasets["train"].column_names:
-                            if accelerator.is_main_process:
-                                eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
-                                logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
-                                if args.with_tracking:
-                                    accelerator.log(
-                                        {
-                                            "eval_acc": eval_acc,
-                                        },
-                                        step=completed_steps,
-                                    )
-                        else:
-                            eval_ppl = 0
-                            for step, batch in enumerate(tqdm(eval_dataloader)):
-                                with torch.no_grad():
-                                    loss = model(**batch, use_cache=False).loss
-                                    eval_ppl += torch.exp(loss)
+                    else:
+                        eval_ppl = 0
+                        for step, batch in enumerate(tqdm(eval_dataloader)):
+                            with torch.no_grad():
+                                loss = model(**batch, use_cache=False).loss
+                                eval_ppl += torch.exp(loss)
 
-                            eval_ppl = accelerator.gather(eval_ppl).sum().item() / len(eval_dataloader)
+                        eval_ppl = accelerator.gather(eval_ppl).sum().item() / len(eval_dataloader)
 
-                            logger.info(f"  Step: {completed_steps}, Eval PPL: {eval_ppl}")
-                            if args.with_tracking:
-                                accelerator.log(
-                                    {
-                                        "eval_ppl": eval_ppl,
-                                    },
-                                    step=completed_steps,
-                                )
-                        model.train()
+                        logger.info(f"  Step: {completed_steps}, Eval PPL: {eval_ppl}")
+                        if args.with_tracking:
+                            accelerator.log(
+                                {
+                                    "eval_ppl": eval_ppl,
+                                },
+                                step=completed_steps,
+                            )
+                    model.train()
 
         if args.checkpointing_steps == "epoch":
             output_dir = f"epoch_{epoch}"
