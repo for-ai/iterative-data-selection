@@ -9,14 +9,29 @@ TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
 DATASET_FILE=simonycl/p3_0.5_dataset
 TRAIN_FILE=data/processed/sharegpt/sharegpt_data.jsonl
-STEP_NAME=step_3000
+STEP_NAME=""
+
 MODEL_NAME=Llama-2-7b-hf-sharegpt
 # MODEL_NAME=Llama-2-7b-hf-lima
 
-python3 finetune/merge_lora.py \
+# check if step_name equal to ""
+if [ -z "$STEP_NAME" ]
+then
+    echo "STEP_NAME is empty"
+    python3 finetune/merge_lora.py \
+    --base_model_name_or_path $MODEL_NAME_OR_PATH \
+    --lora_model_name_or_path output/data_selection_${MODEL_NAME}_lora \
+    --output_dir output/data_selection_${MODEL_NAME}_lora_merged/ \
+    --tokenizer_name_or_path output/data_selection_${MODEL_NAME}_lora/ \
+    --push_to_hub_id simonycl/data_selection_${MODEL_NAME}_lora \
+    --save_tokenizer
+else
+    echo "STEP_NAME is NOT empty"
+    python3 finetune/merge_lora.py \
     --base_model_name_or_path $MODEL_NAME_OR_PATH \
     --lora_model_name_or_path output/data_selection_${MODEL_NAME}_lora/${STEP_NAME} \
     --output_dir output/data_selection_${MODEL_NAME}_lora_merged_${STEP_NAME}/ \
     --tokenizer_name_or_path output/data_selection_${MODEL_NAME}_lora/ \
     --push_to_hub_id simonycl/data_selection_${MODEL_NAME}_lora_merged_${STEP_NAME} \
     --save_tokenizer
+fi

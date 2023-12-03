@@ -13,7 +13,7 @@ def read_config(config_path):
         return yaml.safe_load(file)
     
     
-config = read_config('config.yaml')
+config = read_config('./config/p3_config.yaml')
 # Load dataset
 dataset_name = config['dataset']['name']
 dataset = load_dataset(dataset_name)

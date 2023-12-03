@@ -11,5 +11,5 @@ coreset_method:
   # name: 'Random'
   # name: 'KMeansCentroids'
   args:
-    fraction: 0.5
+    fraction: 0.1
     random_seed: 42

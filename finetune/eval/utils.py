@@ -175,15 +175,18 @@ def score_qa_task(model, tokenizer, scoring_examples, batch_size=1, aggregation=
 
     # unroll the scoring examples
     unrolled_examples = []
-    for scoring_example in scoring_examples:
-        input = scoring_example["input"]
-        choices = scoring_example["choices"]
-        label = choices.index(scoring_example["output"].strip())
-        unrolled_examples.append({
-            "input": input,
-            "choices": choices,
-            "label": label
-        })
+    if "label" not in scoring_examples[0]:
+        for scoring_example in scoring_examples:
+            input = scoring_example["input"]
+            choices = scoring_example["choices"]
+            unrolled_examples.append({
+                "input": input,
+                "choices": choices,
+                "label": label
+            })
+    else:
+        print("Skipping unrolling scoring examples because they already contain labels.")
+        unrolled_examples = scoring_examples
 
     if not disable_tqdm:
         progress = tqdm.tqdm(total=len(unrolled_examples), desc="Scoring QA")

@@ -4,17 +4,23 @@ Uniform is not a top-k ranking method.
 import numpy as np
 from .coresetmethod import CoresetMethod
 import warnings
+import tqdm
 
 def quasi_uniform_sampling(label_counts, num_samples):
     adjusted_samples = {label: 0 for label in label_counts}
     remaining_labels = set(label_counts.keys())
 
+    pbar = tqdm.tqdm(total=num_samples)
     while num_samples > 0 and remaining_labels:
         evenly_distributed_samples = num_samples // len(remaining_labels)
+        if evenly_distributed_samples == 0:
+            break
+        
         for label in list(remaining_labels):
             max_samples_for_label = min(evenly_distributed_samples, label_counts[label] - adjusted_samples[label])
             adjusted_samples[label] += max_samples_for_label
             num_samples -= max_samples_for_label
+            pbar.update(max_samples_for_label)
 
             if adjusted_samples[label] == label_counts[label]:
                 remaining_labels.remove(label)
