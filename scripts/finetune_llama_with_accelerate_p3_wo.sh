@@ -2,7 +2,7 @@ export CUDA_VISIBLE_DEVICES=0
 
 MODEL_SIZE=7B
 NUM_GPUS=1
-BATCH_SIZE_PER_GPU=8
+BATCH_SIZE_PER_GPU=4
 EVAL_BATCH_SIZE_PER_GPU=32
 TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
@@ -10,18 +10,13 @@ MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
 
 DATASET_FILE=simonycl/p3_0.5_dataset
 
-MODEL_NAME=Llama-2-7b-hf-p3-0.5
+MODEL_NAME=Llama-2-7b-hf-p3-0.5-test
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
 echo "Training llama model ${MODEL_SIZE} using $NUM_GPUS GPUs, $BATCH_SIZE_PER_GPU batch size per GPU, $GRADIENT_ACC_STEPS gradient accumulation steps"
 
-ACCELERATE_DEBUG_MODE="1" accelerate launch --debug \
-    --mixed_precision bf16 \
-    --num_machines 1 \
-    --num_processes $NUM_GPUS \
-    --use_deepspeed \
-    --deepspeed_config_file ds_configs/stage3_no_offloading_accelerate.conf \
-    finetune/finetune.py \
+python3 \
+    finetune/finetune_wo_accelerate.py \
     --model_name_or_path $MODEL_NAME_OR_PATH \
     --use_flash_attn \
     --tokenizer_name $MODEL_NAME_OR_PATH \
@@ -29,7 +24,7 @@ ACCELERATE_DEBUG_MODE="1" accelerate launch --debug \
     --dataset_name $DATASET_FILE \
     --max_seq_length 4096 \
     --preprocessing_num_workers 24 \
-    --checkpointing_steps 500 \
+    --checkpointing_steps epoch \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
     --learning_rate 1e-5 \
@@ -40,11 +35,10 @@ ACCELERATE_DEBUG_MODE="1" accelerate launch --debug \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 10 \
+    --num_train_epochs 15 \
     --do_eval \
     --eval_steps 1000 \
     --selection_indices /mnt/ceph_rbd/data-selection/selection/subset_indices.pkl \
-    --resume_from_checkpoint /mnt/ceph_rbd/data-selection/output/data_selection_Llama-2-7b-hf-p3-0.5_lora/step_4000 \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
     --output_dir output/data_selection_${MODEL_NAME}_lora \
     --with_tracking \
@@ -58,4 +52,4 @@ ACCELERATE_DEBUG_MODE="1" accelerate launch --debug \
 #     --push_to_hub_id simonycl/data_selection_${MODEL_NAME}_lora_merged \
 #     --save_tokenizer
 
-# nohup bash scripts/finetune_llama_with_accelerate_p3.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-p3_lora.log 2>&1 &
+# nohup bash scripts/finetune_llama_with_accelerate_p3_wo.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-p3_lora_wo.log 2>&1 &

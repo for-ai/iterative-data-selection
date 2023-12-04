@@ -16,3 +16,8 @@ def save_with_accelerate(accelerator, model, tokenizer, output_dir, args):
         unwrapped_model.save_pretrained(
             output_dir, is_main_process=accelerator.is_main_process, save_function=accelerator.save, state_dict=state_dict
         )
+
+def save_with_hf(model, tokenizer, output_dir, args):
+    model.save_pretrained(output_dir)
+    # what will the above line do with model is a peft model?
+    # Answer: 
