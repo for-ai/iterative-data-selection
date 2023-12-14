@@ -7,9 +7,9 @@ dataset:
 
 coreset_method:
   # Supported: Uniform, Random, KMeansCentroids
-  name: 'Uniform'
+  # name: 'Uniform'
   # name: 'Random'
-  # name: 'KMeansCentroids'
+  name: 'KMeansCentroids'
   args:
     fraction: 0.1
     random_seed: 42

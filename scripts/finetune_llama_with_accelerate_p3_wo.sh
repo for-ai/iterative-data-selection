@@ -10,7 +10,7 @@ MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
 
 DATASET_FILE=simonycl/p3_0.5_dataset
 
-MODEL_NAME=Llama-2-7b-hf-p3-0.5-test
+MODEL_NAME=Llama-2-7b-hf-p3-0.5-test-pod
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
 echo "Training llama model ${MODEL_SIZE} using $NUM_GPUS GPUs, $BATCH_SIZE_PER_GPU batch size per GPU, $GRADIENT_ACC_STEPS gradient accumulation steps"
@@ -35,7 +35,7 @@ python3 \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 15 \
+    --num_train_epochs 10 \
     --do_eval \
     --eval_steps 1000 \
     --selection_indices /mnt/ceph_rbd/data-selection/selection/subset_indices.pkl \
@@ -52,4 +52,4 @@ python3 \
 #     --push_to_hub_id simonycl/data_selection_${MODEL_NAME}_lora_merged \
 #     --save_tokenizer
 
-# nohup bash scripts/finetune_llama_with_accelerate_p3_wo.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-p3_lora_wo.log 2>&1 &
+# nohup bash scripts/finetune_llama_with_accelerate_p3_wo.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-p3_lora_wo-pod.log 2>&1 &
