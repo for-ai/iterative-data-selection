@@ -38,9 +38,6 @@ python3 \
     --num_train_epochs 25 \
     --low_cpu_mem_usage \
     --do_eval \
-    --eval_steps 1000 \
-    --selection_indices /mnt/ceph_rbd/data-selection/selection/subset_indices.pkl \
-    --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
     --output_dir output/data_selection_${MODEL_NAME}_lora \
     --with_tracking \
     --logging_steps 10 \
@@ -53,4 +50,4 @@ python3 \
 #     --push_to_hub_id simonycl/data_selection_${MODEL_NAME}_lora_merged \
 #     --save_tokenizer
 
-# nohup bash scripts/finetune_llama_with_accelerate_p3_wo.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-p3_lora_wo.log 2>&1 &
+# nohup bash scripts/finetune_llama_with_accelerate_p3_wo.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-p3_lora_wo-pod.log 2>&1 &
