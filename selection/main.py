@@ -23,10 +23,11 @@ if 'split' in config['dataset']:
 
 # Initialize selector according to yml
 method_name = config['coreset_method']['name']
+fraction = config['coreset_method']['args']['fraction']
 selector = methods.__dict__[method_name](dataset, dataset_config=config['dataset']['args'], method_config=config['coreset_method']['args'])
 
 # Select subset
 subset_indices = selector.select()
 
-with open('subset_indices.pkl', 'wb') as f:
+with open(f'indices/{method_name}_{str(fraction)}.pkl', 'wb') as f:
     pickle.dump(subset_indices, f)
