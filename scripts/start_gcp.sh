@@ -31,6 +31,8 @@ pip3 install git+https://github.com/yizhongw/transformers.git@left_padding
 
 pip install flash-attn --no-build-isolation
 
+pip install wandb
+
 ## export the cache
 conda activate /mnt/data/selection
 
