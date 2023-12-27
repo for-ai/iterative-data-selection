@@ -310,7 +310,7 @@ def main():
 
     # init wandb
     if args.with_tracking:
-        wandb.init(project="open_instruct", config=vars(args), name=args.output_dir)
+        wandb.init(project="open_instruct", entity="simon011130", config=vars(args), name=args.output_dir)
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
