@@ -23,7 +23,7 @@ class KMeansRandom(CoresetMethod):
 
         print("Performing K-means clustering...")
         # Perform K-means clustering
-        kmeans = MiniBatchKMeans(n_clusters=self.K, batch_size=1024, random_state=self.random_seed, n_init="auto", verbose=1)
+        kmeans = MiniBatchKMeans(n_clusters=self.K, batch_size=128, random_state=self.random_seed, n_init="auto", verbose=1)
         kmeans.fit(data)
 
         # Assign data points to clusters
