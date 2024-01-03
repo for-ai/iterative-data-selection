@@ -8,7 +8,8 @@ TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
 # MODEL_NAME_OR_PATH=/mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000
 
-DATASET_FILE=GAIR/lima
+TRAIN_FILE=/mnt/data/data-selection/data/processed/lima/lima_data.jsonl
+
 EVAL_DATASET_NAME=simonycl/p3_0.5_dataset
 
 MODEL_NAME=Llama-2-7b-hf-lima
@@ -22,7 +23,7 @@ python3 \
     --use_flash_attn \
     --tokenizer_name $MODEL_NAME_OR_PATH \
     --use_slow_tokenizer \
-    --dataset_name $DATASET_FILE \
+    --train_file $TRAIN_FILE \
     --max_seq_length 4096 \
     --preprocessing_num_workers 24 \
     --checkpointing_steps epoch \
@@ -39,7 +40,7 @@ python3 \
     --num_train_epochs 25 \
     --low_cpu_mem_usage \
     --do_eval \
-    --eval_dataset_name ${EVAL_DATASET_NAME} \
+    --eval_file $EVAL_DATASET_NAME \
     --output_dir output/data_selection_${MODEL_NAME}_lora \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
     --eval_steps epoch \

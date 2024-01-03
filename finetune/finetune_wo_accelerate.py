@@ -348,6 +348,7 @@ def main():
             data_files=data_files,
             **dataset_args,
         )
+
     if args.selection_indices is not None:
         selection = pickle.load(open(args.selection_indices, "rb"))
         raw_datasets['train'] = raw_datasets['train'].select(selection['indices'])
@@ -356,11 +357,16 @@ def main():
     eval_data = None
     if args.do_eval:
         if args.eval_file is not None:
-            eval_raw_dataset = load_dataset(
-                "json",
-                data_files={"test": args.eval_file},
-            )
-
+            if 'json' in args.eval_file:
+                eval_raw_dataset = load_dataset(
+                    "json",
+                    data_files={"test": args.eval_file},
+                )
+            else:
+                eval_raw_dataset = load_dataset(
+                    args.eval_file,
+                )
+        
     # Load pretrained model and tokenizer
     if args.config_name:
         config = AutoConfig.from_pretrained(args.config_name)
@@ -484,7 +490,6 @@ def main():
         raise ValueError("You need to have either 'input'&'output' or 'messages' in your column names.")
     
     
-
     if args.do_eval:
         # Specifically for P3 dataset
         if args.dataset_name is not None:
@@ -493,6 +498,15 @@ def main():
             eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == "hellaswag")
             if args.eval_dataset_name is not None:
                 eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
+
+        if (args.eval_file is not None) and ('p3' in args.eval_file):
+            eval_dataset = eval_raw_dataset['test']
+            # Filtering if only want to specific dataset
+            eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == "hellaswag")
+            if args.eval_dataset_name is not None:
+                eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
+
+            eval_raw_dataset['test'] = eval_dataset
 
     lm_datasets = raw_datasets.map(
         encode_function,
@@ -507,6 +521,21 @@ def main():
 
     if args.do_eval:
         if args.eval_file is not None:
+            if "input" in eval_raw_dataset["test"].column_names and "output" in eval_raw_dataset["test"].column_names:
+                encode_function = partial(
+                    encode_with_prompt_completion_format,
+                    tokenizer=tokenizer,
+                    max_seq_length=args.max_seq_length,
+                )
+            elif "messages" in eval_raw_dataset["test"].column_names:
+                encode_function = partial(
+                    encode_with_messages_format,
+                    tokenizer=tokenizer,
+                    max_seq_length=args.max_seq_length,
+                )
+            else:
+                raise ValueError("You need to have either 'input'&'output' or 'messages' in your column names.")
+            
             eval_dataset = eval_raw_dataset.map(
                 encode_function,
                 batched=False,
@@ -521,8 +550,8 @@ def main():
     train_dataset = lm_datasets["train"]
     if (args.do_eval) and (eval_dataset is None):
         eval_dataset = lm_datasets["test"]
-    # else:
-    #     eval_dataset = eval_dataset["test"]
+    else:
+        eval_dataset = eval_dataset["test"]
 
     print(len(train_dataset))
     # Log a few random samples from the training set:
@@ -698,7 +727,7 @@ def main():
                     },
                     step=completed_steps,
             )
-        elif "output" in raw_datasets["train"].column_names:
+        elif "output" in raw_datasets["train"].column_names or ((eval_raw_dataset is not None) and ("output" in eval_raw_dataset["test"].column_names)):
             eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
             logger.info(f"  Initial Eval Acc: {eval_acc}")
             if args.with_tracking:
@@ -810,7 +839,7 @@ def main():
                                         },
                                         step=completed_steps,
                                     )
-                            elif "output" in raw_datasets["train"].column_names:
+                            elif "output" in raw_datasets["train"].column_names or ((eval_raw_dataset is not None) and ("output" in eval_raw_dataset["test"].column_names)):
                                 eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
                                 logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
                                 if args.with_tracking:
@@ -875,7 +904,7 @@ def main():
                             },
                             step=epoch,
                         )
-                elif "output" in raw_datasets["train"].column_names:
+                elif "output" in raw_datasets["train"].column_names or ((eval_raw_dataset is not None) and ("output" in eval_raw_dataset["test"].column_names)):
                     eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
                     logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
                     if args.with_tracking:

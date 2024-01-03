@@ -38,22 +38,22 @@ fi
 # wget -P data/raw_train/stanford_alpaca/ https://github.com/tatsu-lab/stanford_alpaca/raw/main/alpaca_data.json
 
 
-echo "Downloading the dolly dataset..."
-wget -P data/raw_train/dolly/ https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/main/databricks-dolly-15k.jsonl
+# echo "Downloading the dolly dataset..."
+# wget -P data/raw_train/dolly/ https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/main/databricks-dolly-15k.jsonl
 
 
-echo "Downloading the OpenAssistant data (oasst1)..."
-wget -P data/raw_train/oasst1/ https://huggingface.co/datasets/OpenAssistant/oasst1/resolve/main/2023-04-12_oasst_ready.trees.jsonl.gz
-gzip -d data/raw_train/oasst1/2023-04-12_oasst_ready.trees.jsonl.gz
+# echo "Downloading the OpenAssistant data (oasst1)..."
+# wget -P data/raw_train/oasst1/ https://huggingface.co/datasets/OpenAssistant/oasst1/resolve/main/2023-04-12_oasst_ready.trees.jsonl.gz
+# gzip -d data/raw_train/oasst1/2023-04-12_oasst_ready.trees.jsonl.gz
 
 
-echo "Downloading the code alpaca dataset..."
-wget -P data/raw_train/code_alpaca/ https://github.com/sahil280114/codealpaca/raw/master/data/code_alpaca_20k.json
+# echo "Downloading the code alpaca dataset..."
+# wget -P data/raw_train/code_alpaca/ https://github.com/sahil280114/codealpaca/raw/master/data/code_alpaca_20k.json
 
 
-echo "Downloading the gpt4-llm dataset..."
-wget -P data/raw_train/gpt4_alpaca/ https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM/raw/main/data/alpaca_gpt4_data.json
-wget -P data/raw_train/gpt4_alpaca/ https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM/raw/main/data/alpaca_gpt4_data_zh.json
+# echo "Downloading the gpt4-llm dataset..."
+# wget -P data/raw_train/gpt4_alpaca/ https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM/raw/main/data/alpaca_gpt4_data.json
+# wget -P data/raw_train/gpt4_alpaca/ https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM/raw/main/data/alpaca_gpt4_data_zh.json
 
 
 # echo "Downloading the baize dataset..."
@@ -82,25 +82,25 @@ wget -P data/raw_train/gpt4_alpaca/ https://github.com/Instruction-Tuning-with-G
 
 echo "Downloading LIMA dataset..."
 wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://huggingface.co/datasets/GAIR/lima/raw/main/train.jsonl
-wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lim/ https://huggingface.co/datasets/GAIR/lima/raw/main/test.jsonl
+wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://huggingface.co/datasets/GAIR/lima/raw/main/test.jsonl
 
 
-echo "Downloading WizardLM dataset..."
-wget -P data/raw_train/wizardlm/ https://huggingface.co/datasets/WizardLM/WizardLM_evol_instruct_V2_196k/resolve/main/WizardLM_evol_instruct_V2_143k.json
+# echo "Downloading WizardLM dataset..."
+# wget -P data/raw_train/wizardlm/ https://huggingface.co/datasets/WizardLM/WizardLM_evol_instruct_V2_196k/resolve/main/WizardLM_evol_instruct_V2_143k.json
 
 
-echo "Downloading the OpenOrca dataset..."
-wget -P data/raw_train/open_orca/ https://huggingface.co/datasets/Open-Orca/OpenOrca/resolve/main/1M-GPT4-Augmented.parquet
-wget -P data/raw_train/open_orca/ https://huggingface.co/datasets/Open-Orca/OpenOrca/resolve/main/3_5M-GPT3_5-Augmented.parquet
+# echo "Downloading the OpenOrca dataset..."
+# wget -P data/raw_train/open_orca/ https://huggingface.co/datasets/Open-Orca/OpenOrca/resolve/main/1M-GPT4-Augmented.parquet
+# wget -P data/raw_train/open_orca/ https://huggingface.co/datasets/Open-Orca/OpenOrca/resolve/main/3_5M-GPT3_5-Augmented.parquet
 
 
-echo "Downloading the Science Instructions dataset..."
-wget -P data/raw_train/science https://beaker.org/api/v3/datasets/01HBS3G7TA8AT15C7RWTJAN66X/files/science_train.jsonl
+# echo "Downloading the Science Instructions dataset..."
+# wget -P data/raw_train/science https://beaker.org/api/v3/datasets/01HBS3G7TA8AT15C7RWTJAN66X/files/science_train.jsonl
 
 
-echo "Downloading the HardCoded dataset..."
-wget -P data/raw_train/hard_coded/ https://beaker.org/api/v3/datasets/01HBS14BBV16K45MMFSYJR86CA/files/hard_coded_examples.xlsx
+# echo "Downloading the HardCoded dataset..."
+# wget -P data/raw_train/hard_coded/ https://beaker.org/api/v3/datasets/01HBS14BBV16K45MMFSYJR86CA/files/hard_coded_examples.xlsx
 
 
 # echo "Processing datasets..."
-python data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset sharegpt
+python data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset lima
