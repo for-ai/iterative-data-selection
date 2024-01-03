@@ -875,6 +875,16 @@ def main():
                             },
                             step=epoch,
                         )
+                elif "output" in raw_datasets["train"].column_names:
+                    eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
+                    logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
+                    if args.with_tracking:
+                        wandb.log(
+                            {
+                                "eval_acc": eval_acc,
+                            },
+                            step=completed_steps,
+                        )
                 else:
                     eval_ppl = 0
                     for step, batch in enumerate(tqdm(eval_dataloader)):

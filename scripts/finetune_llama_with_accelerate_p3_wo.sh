@@ -8,9 +8,10 @@ TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
 # MODEL_NAME_OR_PATH=/mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000
 
-DATASET_FILE=simonycl/p3_0.5_dataset
+DATASET_FILE=GAIR/lima
+EVAL_DATASET_NAME=simonycl/p3_0.5_dataset
 
-MODEL_NAME=Llama-2-7b-hf-p3-0.1
+MODEL_NAME=Llama-2-7b-hf-lima
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
 echo "Training llama model ${MODEL_SIZE} using $NUM_GPUS GPUs, $BATCH_SIZE_PER_GPU batch size per GPU, $GRADIENT_ACC_STEPS gradient accumulation steps"
@@ -38,9 +39,10 @@ python3 \
     --num_train_epochs 25 \
     --low_cpu_mem_usage \
     --do_eval \
+    --eval_dataset_name ${EVAL_DATASET_NAME} \
     --output_dir output/data_selection_${MODEL_NAME}_lora \
-    --selection_indices /mnt/ceph_rbd/data-selection/selection/indices/kmeansrandom_0.1.pkl \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
+    --eval_steps epoch \
     --with_tracking \
     --logging_steps 10 \
     --report_to wandb
