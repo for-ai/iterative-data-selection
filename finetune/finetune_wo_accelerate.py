@@ -536,22 +536,22 @@ def main():
             else:
                 raise ValueError("You need to have either 'input'&'output' or 'messages' in your column names.")
             
-            eval_dataset = eval_raw_dataset.map(
-                encode_function,
-                batched=False,
-                num_proc=args.preprocessing_num_workers,
-                load_from_cache_file=not args.overwrite_cache,
-                remove_columns=[name for name in eval_raw_dataset["test"].column_names if name not in ["input_ids", "labels", "attention_mask"]],
-                desc="Tokenizing and reformatting instruction data",
-            )
-            eval_dataset.set_format(type="pt")
-            eval_dataset = eval_dataset.filter(lambda example: (example['labels'] != -100).any())
+            # eval_dataset = eval_raw_dataset.map(
+            #     encode_function,
+            #     batched=False,
+            #     num_proc=args.preprocessing_num_workers,
+            #     load_from_cache_file=not args.overwrite_cache,
+            #     remove_columns=[name for name in eval_raw_dataset["test"].column_names if name not in ["input_ids", "labels", "attention_mask"]],
+            #     desc="Tokenizing and reformatting instruction data",
+            # )
+            # eval_dataset.set_format(type="pt")
+            # eval_dataset = eval_dataset.filter(lambda example: (example['labels'] != -100).any())
 
     train_dataset = lm_datasets["train"]
     if (args.do_eval) and (eval_dataset is None):
         eval_dataset = lm_datasets["test"]
     else:
-        eval_dataset = eval_dataset["test"]
+        eval_dataset = eval_raw_dataset["test"]
 
     print(len(train_dataset))
     # Log a few random samples from the training set:
