@@ -8,6 +8,9 @@ conda install gh -c conda-forge
 
 pip3 install git+https://github.com/yizhongw/transformers.git@left_padding
 
+pip install packaging
+pip install ninja
+
 pip install flash-attn --no-build-isolation
 
 pip install wandb
