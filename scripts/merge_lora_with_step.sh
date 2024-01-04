@@ -15,7 +15,7 @@ EPOCH_NAME=""
 # MODEL_NAME=Llama-2-7b-hf-p3-0.1-kmeansrandom
 MODEL_NAME=Llama-2-7b-hf-lima
 
-for EPOCH_NAME in 15 18 19 25
+for EPOCH_NAME in 15 18 19 24
 do
     # check if step_name equal to ""
     if [ -z "$STEP_NAME" ] && [ -z "$EPOCH_NAME" ]
@@ -50,7 +50,7 @@ do
     fi
 done
 
-for epoch in 15 18 19 25
+for epoch in 15 18 19 24
 do 
     CHECKPOINT_PATH=/mnt/ceph_rbd/data-selection/output/data_selection_${MODEL_NAME}_lora_merged_epoch_${epoch}
     DATASET_FILE=simonycl/p3_0.5_dataset
