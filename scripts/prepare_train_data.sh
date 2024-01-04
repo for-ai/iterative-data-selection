@@ -103,4 +103,4 @@ wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://
 
 
 # echo "Processing datasets..."
-python data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset lima
+python3 data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset lima
