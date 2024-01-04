@@ -12,7 +12,7 @@ TRAIN_FILE=/mnt/ceph_rbd/data-selection/data/processed/lima/lima_data.jsonl
 
 EVAL_DATASET_NAME=simonycl/p3_0.5_dataset
 
-MODEL_NAME=Llama-2-7b-hf-lima
+MODEL_NAME=Llama-2-7b-hf-lima-no-message
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
 echo "Training llama model ${MODEL_SIZE} using $NUM_GPUS GPUs, $BATCH_SIZE_PER_GPU batch size per GPU, $GRADIENT_ACC_STEPS gradient accumulation steps"
@@ -37,7 +37,7 @@ python3 \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 25 \
+    --num_train_epochs 40 \
     --low_cpu_mem_usage \
     --do_eval \
     --eval_file $EVAL_DATASET_NAME \

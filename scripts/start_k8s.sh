@@ -22,6 +22,6 @@ huggingface-cli login --token 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
 
 wandb login 99c1cfcf5ab402b2d7df6da383d1645fe6da06b6
 
-gh auth setup-git
-
 gh auth login --with-token <<< "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"
+
+gh auth setup-git

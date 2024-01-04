@@ -36,7 +36,7 @@ from transformers import (
 import wandb
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
 from utils.save import save_with_accelerate, save_with_hf
-from utils.template import encode_with_prompt_completion_format, encode_with_messages_format
+from utils.template import encode_with_prompt_completion_format, encode_with_messages_format, encode_with_messages_format_wo_conv
 from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task, score_completions, score_qa_task
 
 logger = get_logger(__name__)
@@ -482,7 +482,8 @@ def main():
         )
     elif "messages" in raw_datasets["train"].column_names:
         encode_function = partial(
-            encode_with_messages_format,
+            # encode_with_messages_format,
+            encode_with_messages_format_wo_conv,
             tokenizer=tokenizer,
             max_seq_length=args.max_seq_length,
         )
