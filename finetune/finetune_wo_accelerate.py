@@ -36,7 +36,7 @@ from transformers import (
 import wandb
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
 from utils.save import save_with_accelerate, save_with_hf
-from utils.template import encode_with_prompt_completion_format, encode_with_messages_format
+from utils.template import encode_with_prompt_completion_format, encode_with_messages_format, encode_with_messages_format_wo_conv
 from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task, score_completions, score_qa_task
 
 logger = get_logger(__name__)
@@ -482,7 +482,8 @@ def main():
         )
     elif "messages" in raw_datasets["train"].column_names:
         encode_function = partial(
-            encode_with_messages_format,
+            # encode_with_messages_format,
+            encode_with_messages_format_wo_conv,
             tokenizer=tokenizer,
             max_seq_length=args.max_seq_length,
         )
@@ -536,22 +537,22 @@ def main():
             else:
                 raise ValueError("You need to have either 'input'&'output' or 'messages' in your column names.")
             
-            eval_dataset = eval_raw_dataset.map(
-                encode_function,
-                batched=False,
-                num_proc=args.preprocessing_num_workers,
-                load_from_cache_file=not args.overwrite_cache,
-                remove_columns=[name for name in eval_raw_dataset["test"].column_names if name not in ["input_ids", "labels", "attention_mask"]],
-                desc="Tokenizing and reformatting instruction data",
-            )
-            eval_dataset.set_format(type="pt")
-            eval_dataset = eval_dataset.filter(lambda example: (example['labels'] != -100).any())
+            # eval_dataset = eval_raw_dataset.map(
+            #     encode_function,
+            #     batched=False,
+            #     num_proc=args.preprocessing_num_workers,
+            #     load_from_cache_file=not args.overwrite_cache,
+            #     remove_columns=[name for name in eval_raw_dataset["test"].column_names if name not in ["input_ids", "labels", "attention_mask"]],
+            #     desc="Tokenizing and reformatting instruction data",
+            # )
+            # eval_dataset.set_format(type="pt")
+            # eval_dataset = eval_dataset.filter(lambda example: (example['labels'] != -100).any())
 
     train_dataset = lm_datasets["train"]
     if (args.do_eval) and (eval_dataset is None):
         eval_dataset = lm_datasets["test"]
     else:
-        eval_dataset = eval_dataset["test"]
+        eval_dataset = eval_raw_dataset["test"]
 
     print(len(train_dataset))
     print(eval_dataset)
