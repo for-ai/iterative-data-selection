@@ -1,5 +1,5 @@
 dataset:
-  name: 'processed/sharegpt/sharegpt_data.jsonl'
+  name: '/mnt/data/data-selection/data/processed/sharegpt/sharegpt_data.jsonl'
   split: 'train'
   args:
     label_column: 'dataset'
@@ -12,5 +12,5 @@ coreset_method:
   # name: 'Random'
   # name: 'KMeansCentroids'
   args:
-    fraction: 0.5
+    fraction: 0.1
     random_seed: 42
