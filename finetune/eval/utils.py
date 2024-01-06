@@ -173,6 +173,11 @@ def score_qa_task(model, tokenizer, scoring_examples, batch_size=1, aggregation=
     - output: the output to score
     '''
 
+    # add pad tokens to the tokenizer if it doesn't have one
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+
     # unroll the scoring examples
     unrolled_examples = []
     if "label" not in scoring_examples[0]:
@@ -219,14 +224,25 @@ def score_qa_task(model, tokenizer, scoring_examples, batch_size=1, aggregation=
 
                 tokenized_choices = tokenized_choices[:, :completion_logits.shape[1]] # (num_choices, num_tokens)
                 choices_mask = choices_mask[:, :completion_logits.shape[1]] # (num_choices, num_tokens)
-                
-                # select the token likelihoods for the choices, in the shapre of (num_choices, num_tokens)
-                completion_log_probs = torch.gather(completion_logits, dim=-1, index=tokenized_choices.unsqueeze(-1)).squeeze(-1) # (num_choices, num_tokens)
-                # mask out the padding tokens
-                completion_log_probs[~choices_mask] = 0
-                # log sum exp
-                completion_log_probs = torch.logsumexp(completion_log_probs, dim=-1) # (num_choices, )
-                pred = torch.argmax(completion_log_probs).item() # (1, )
+    
+            else:
+                # Calculate the start index for slicing
+                start_index = -len(tokenized_choices[0])
+
+                # Adjust the slicing of completion_logits to get logits for the tokenized choices
+                completion_logits = output_logit[:, start_index:, :]  # (num_choices, num_tokens, vocab_size)
+
+                # Adjust the slicing of tokenized_choices and choices_mask to match the shape of completion_logits
+                tokenized_choices = tokenized_choices[:, start_index:]  # (num_choices, num_tokens)
+                choices_mask = choices_mask[:, start_index:]  # (num_choices, num_tokens)
+            
+            # select the token likelihoods for the choices, in the shapre of (num_choices, num_tokens)
+            completion_log_probs = torch.gather(completion_logits, dim=-1, index=tokenized_choices.unsqueeze(-1)).squeeze(-1) # (num_choices, num_tokens)
+            # mask out the padding tokens
+            completion_log_probs[~choices_mask] = 0
+            # log sum exp
+            completion_log_probs = torch.logsumexp(completion_log_probs, dim=-1) # (num_choices, )
+            pred = torch.argmax(completion_log_probs).item() # (1, )
 
             label = example["label"]
             accuracies.append(int(pred == label))
