@@ -8,9 +8,11 @@ dataset:
 
 coreset_method:
   # Supported: Uniform, Random, KMeansCentroids
-  name: 'Random'
+  name: 'Deita'
+  # name: 'Random'
   # name: 'Random'
   # name: 'KMeansCentroids'
   args:
     fraction: 0.1
     random_seed: 42
+    scores_path: '/mnt/data/data-selection/data/processed/sharegpt/scores.jsonl'
