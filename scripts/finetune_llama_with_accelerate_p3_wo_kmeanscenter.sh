@@ -30,7 +30,7 @@ python3 \
     --use_flash_attn \
     --tokenizer_name $MODEL_NAME_OR_PATH \
     --use_slow_tokenizer \
-    --dataset_file $DATASET_FILE \
+    --dataset_name $DATASET_FILE \
     --max_seq_length 4096 \
     --preprocessing_num_workers 24 \
     --checkpointing_steps epoch \

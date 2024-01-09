@@ -551,7 +551,7 @@ def main():
     train_dataset = lm_datasets["train"]
     if (args.do_eval) and (eval_dataset is None):
         eval_dataset = lm_datasets["test"]
-    else:
+    elif (args.eval_file is not None):
         eval_dataset = eval_raw_dataset["test"]
 
     print(len(train_dataset))
