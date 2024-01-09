@@ -1,4 +1,6 @@
+
 sudo apt-get update
+
 
 sudo apt-get install -y vim
 
@@ -45,3 +47,13 @@ git config --global credential.helper store
 huggingface-cli login --token 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
 
 wandb login 99c1cfcf5ab402b2d7df6da383d1645fe6da06b6
+
+type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+&& sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+&& sudo apt update \
+&& sudo apt install gh -y
+
+gh auth login --with-token <<< "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"
+gh auth setup-git

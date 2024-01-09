@@ -15,9 +15,11 @@ pip install flash-attn --no-build-isolation
 
 pip install wandb
 
-export HF_HOME=/mnt/ceph_rbd/.cache/huggingface
-export HF_TRANSFORMERS_CACHE=/mnt/ceph_rbd/.cache/transformers
-export HF_DATASETS_CACHE=/mnt/ceph_rbd/.cache/datasets
+pip install sentence-transformers
+
+export HF_HOME=/mnt/data/.cache/huggingface
+export HF_TRANSFORMERS_CACHE=/mnt/data/.cache/transformers
+export HF_DATASETS_CACHE=/mnt/data/.cache/datasets
 
 git config --global credential.helper store
 

@@ -9,7 +9,7 @@ coreset_method:
   # Supported: Uniform, Random, KMeansCentroids, KMeansRandom
   # name: 'Uniform'
   # name: 'Random'
-  name: 'KMeansRandom'
+  name: 'KMeansCentroids'
   args:
     fraction: 0.1
     random_seed: 42
