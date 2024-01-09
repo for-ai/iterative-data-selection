@@ -38,7 +38,7 @@ class KMeansRandom(CoresetMethod):
         # This method needs to be implemented according to the format of your dataset
         sentences = self.dataset[self.dataset_config['data_column']]
         model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
-        embeddings = model.encode(sentences, batch_size=2048, device='cuda', show_progress_bar=True)
+        embeddings = model.encode(sentences, batch_size=512, device='cuda', show_progress_bar=True)
         return embeddings
 
     def _select_random_samples(self, data, labels):

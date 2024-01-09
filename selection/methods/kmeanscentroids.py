@@ -21,7 +21,7 @@ class KMeansCentroids(CoresetMethod):
 
         print("Performing K-means clustering...")
         # Perform K-means clustering
-        kmeans = MiniBatchKMeans(n_clusters=self.coreset_size, batch_size=1024, random_state=self.random_seed, n_init="auto", verbose=1)
+        kmeans = MiniBatchKMeans(n_clusters=self.coreset_size, batch_size=512, random_state=self.random_seed, n_init="auto", verbose=1)
         kmeans.fit(data)
 
         # Select centroids
@@ -37,7 +37,7 @@ class KMeansCentroids(CoresetMethod):
         # This method needs to be implemented according to the format of your dataset
         sentences = self.dataset[self.dataset_config['data_column']]
         model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
-        embeddings = model.encode(sentences, batch_size=2048, device='cuda', show_progress_bar=True)
+        embeddings = model.encode(sentences, batch_size=1024, device='cuda', show_progress_bar=True)
         
         # print the device where the embeddings are stored
         # print("Embeddings are stored in: ", embeddings.device)

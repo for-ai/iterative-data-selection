@@ -44,6 +44,8 @@ class Uniform(CoresetMethod):
         # Initial allocation
         samples_per_label = quasi_uniform_sampling(label_counts, self.coreset_size)
 
+        print(samples_per_label)
+        print(sum(samples_per_label.values()))
         # Check for underrepresented labels and issue warnings
         selected_indices = []
         for label in unique_labels:

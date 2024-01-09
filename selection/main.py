@@ -13,7 +13,7 @@ def read_config(config_path):
         return yaml.safe_load(file)
     
     
-config = read_config('./config/sharegpt_config.yaml')
+config = read_config('./config/p3_config.yaml')
 # Load dataset
 dataset_path = config['dataset']['name']
 if dataset_path.endswith('json') or dataset_path.endswith('jsonl'):
@@ -27,7 +27,7 @@ dataset_name = dataset_path.split('/')[-1].split('_')[0]
 
 if 'split' in config['dataset']:
     dataset = dataset[config['dataset']['split']]
-    dataset = dataset.shuffle()
+    # dataset = dataset.shuffle()
 
 # Initialize selector according to yml
 method_name = config['coreset_method']['name']
@@ -39,3 +39,5 @@ subset_indices = selector.select()
 
 with open(f'indices/{dataset_name}_{method_name}_{str(fraction)}.pkl', 'wb') as f:
     pickle.dump(subset_indices, f)
+
+# nohup python main.py > logs/main.log 2>&1 &
