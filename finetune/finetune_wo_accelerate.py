@@ -52,6 +52,12 @@ def parse_args():
         help="The name of the dataset to use (via the datasets library).",
     )
     parser.add_argument(
+        "--train_dataset_name",
+        type=str,
+        default=None,
+        help="The name of the dataset to use (via the datasets library).",
+    )
+    parser.add_argument(
         "--dataset_config_name",
         type=str,
         default=None,
@@ -352,6 +358,9 @@ def main():
     if args.selection_indices is not None:
         selection = pickle.load(open(args.selection_indices, "rb"))
         raw_datasets['train'] = raw_datasets['train'].select(selection['indices'])
+        if args.train_dataset_name is not None:
+            raw_datasets['train'] = raw_datasets['train'].filter(lambda example: example['dataset'] == args.train_dataset_name)
+            
     # raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
 
     eval_data = None
