@@ -114,6 +114,12 @@ def parse_args():
         help="The maximum total sequence length (prompt+completion) of each training example.",
     )
     
+    parser.add_argument(
+        '--use_lora',
+        type=str,
+        default=None,
+        help='If passed, will load Lora model and use it to train the model.',
+    )
     # Save and logging arguments
     parser.add_argument("--output_dir", type=str, default=None, help="Where to store the final model.")
     parser.add_argument("--seed", type=int, default=None, help="A seed for reproducible training.")
@@ -220,6 +226,11 @@ def main():
         if args.eval_dataset_name is not None:
             eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
 
+    if args.use_lora is not None:
+        from peft import PeftModel
+        print("resume from checkpoint" + args.use_lora)
+        model = PeftModel.from_pretrained(model, args.use_lora, is_trainable=False)
+        
     model.eval()
     # P3 specific
     eval_stat = {}
