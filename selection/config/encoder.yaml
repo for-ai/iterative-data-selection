@@ -1,0 +1,17 @@
+# Settings for sentence-transformer
+encoder:
+  is_sentence_transformer: True
+  model_name: 'intfloat/e5-large-v2'
+  max_length_threshold: 4
+
+# Settings for Llama model
+# encoder:
+#   model_name: 'meta-llama/Llama-2-7b-hf'
+#   use_flash_attn: True
+#   is_8bit: False
+
+# # Settings for contriever model
+# encoder:
+#   model_name: 'facebook/contriever'
+#   is_sentence_transformer: False
+#   max_length_threshold: 2
