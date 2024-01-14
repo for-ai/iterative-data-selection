@@ -1,9 +1,9 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1
 HF_TOKEN=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
 
 MODEL_SIZE=7B
 NUM_GPUS=2
-BATCH_SIZE_PER_GPU=1
+BATCH_SIZE_PER_GPU=2
 EVAL_BATCH_SIZE_PER_GPU=4
 TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
@@ -13,9 +13,10 @@ STEP_NAME=""
 EPOCH_NAME=""
 
 # MODEL_NAME=Llama-2-7b-hf-p3-0.1-kmeansrandom
-MODEL_NAME=Llama-2-7b-hf-lima
+# MODEL_NAME=Llama-2-7b-hf-lima
+MODEL_NAME=Llama-2-7b-hf-p3-full
 
-# for EPOCH_NAME in 15 18 19 24
+# for EPOCH_NAME in 0
 # do
 #     # check if step_name equal to ""
 #     if [ -z "$STEP_NAME" ] && [ -z "$EPOCH_NAME" ]
@@ -34,9 +35,9 @@ MODEL_NAME=Llama-2-7b-hf-lima
 #         echo "EPOCH_NAME is ${EPOCH_NAME}"
 #         python3 finetune/merge_lora.py \
 #         --base_model_name_or_path $MODEL_NAME_OR_PATH \
-#         --lora_model_name_or_path output/data_selection_${MODEL_NAME}_lora/epoch_${EPOCH_NAME} \
+#         --lora_model_name_or_path simonycl/data-selection-Llama-2-7b-p3-full-epoch-0 \
 #         --output_dir output/data_selection_${MODEL_NAME}_lora_merged_epoch_${EPOCH_NAME}/ \
-#         --tokenizer_name_or_path output/data_selection_${MODEL_NAME}_lora/ \
+#         --tokenizer_name_or_path $MODEL_NAME_OR_PATH \
 #         --save_tokenizer
 #     else
 #         echo "STEP_NAME is NOT empty"
@@ -50,9 +51,9 @@ MODEL_NAME=Llama-2-7b-hf-lima
 #     fi
 # done
 
-# for epoch in 15 18 19 24
+# for epoch in 0
 # do 
-#     CHECKPOINT_PATH=/mnt/ceph_rbd/data-selection/output/data_selection_${MODEL_NAME}_lora_merged_epoch_${epoch}
+#     CHECKPOINT_PATH=output/data_selection_${MODEL_NAME}_lora_merged_epoch_${epoch}
 #     DATASET_FILE=simonycl/p3_0.5_dataset
 #     python3 -m finetune.evaluation \
 #         --use_flash_attn \
@@ -60,11 +61,11 @@ MODEL_NAME=Llama-2-7b-hf-lima
 #         --dataset_name $DATASET_FILE \
 #         --output_dir output/data_selection_${MODEL_NAME}_lora_merged_epoch_${epoch} \
 #         --model_name_or_path $CHECKPOINT_PATH \
-#         --eval_batch_size 32
+#         --eval_batch_size 16
 # done
 
-MODEL_NAME=Llama-2-7b-hf-full-ft-lima
-CHECKPOINT_PATH=simonycl/llama-2-7b-hf-sharegpt-full-ft-lima
+MODEL_NAME=Llama-2-7b-hf-lora-p3
+CHECKPOINT_PATH=simonycl/data_selection_7B_lora_merged
 DATASET_FILE=simonycl/p3_0.5_dataset
 python3 -m finetune.evaluation \
     --use_flash_attn \
@@ -74,4 +75,4 @@ python3 -m finetune.evaluation \
     --model_name_or_path $CHECKPOINT_PATH \
     --eval_batch_size 16
 
-# nohup bash scripts/merge_lora_with_step.sh > merge_lora_with_step.log 2>&1 &
+# nohup bash scripts/merge_lora_with_step.sh > output/p3-full-epoch-0-eval-results.log 2>&1 &
