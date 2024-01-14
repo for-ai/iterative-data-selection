@@ -229,8 +229,8 @@ def main():
     if args.use_lora is not None:
         from peft import PeftModel
         print("resume from checkpoint" + args.use_lora)
-        model = PeftModel.from_pretrained(model, args.use_lora, is_trainable=False)
-        
+        model = PeftModel.from_pretrained(model=model, model_id=args.use_lora, is_trainable=False)
+
     model.eval()
     # P3 specific
     eval_stat = {}
