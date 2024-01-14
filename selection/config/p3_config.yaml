@@ -9,7 +9,13 @@ coreset_method:
   # Supported: Uniform, Random, KMeansCentroids, KMeansRandom
   # name: 'Uniform'
   # name: 'Random'
-  name: 'KMeansCentroids'
+  name: 'KMeansRandom'
   args:
     fraction: 0.1
     random_seed: 42
+    encoder_config:
+      batch_size: 2048
+      is_sentence_transformer: True
+      # model_name: 'intfloat/e5-large-v2'
+      model_name: 'sentence-transformers/all-MiniLM-L6-v2'
+      max_length_threshold: 4

@@ -8,6 +8,9 @@ This method uses K-means clustering to select random samples of the clusters.
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans
 from .coresetmethod import CoresetMethod
+import sys
+sys.path.append('../')
+from encoder import AutoEncoder
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 import random
@@ -37,7 +40,7 @@ class KMeansRandom(CoresetMethod):
         # Extract the data as a NumPy array from the dataset
         # This method needs to be implemented according to the format of your dataset
         sentences = self.dataset[self.dataset_config['data_column']]
-        model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+        model = AutoEncoder(self.method_config['encoder_config'])
         embeddings = model.encode(sentences, batch_size=512, device='cuda', show_progress_bar=True)
         return embeddings
 

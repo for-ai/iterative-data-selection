@@ -2,7 +2,7 @@ export CUDA_VISIBLE_DEVICES=0
 
 MODEL_SIZE=7B
 NUM_GPUS=1
-BATCH_SIZE_PER_GPU=1
+BATCH_SIZE_PER_GPU=4
 EVAL_BATCH_SIZE_PER_GPU=32
 TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
@@ -27,13 +27,13 @@ python3 \
     --dataset_name $DATASET_FILE \
     --max_seq_length 4096 \
     --preprocessing_num_workers 24 \
-    --checkpointing_steps epoch \
+    --checkpointing_steps 1500 \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
-    --learning_rate 2e-5 \
+    --learning_rate 8e-5 \
     --lr_scheduler_type linear \
     --warmup_ratio 0.05 \
-    --weight_decay 0.05 \
+    --weight_decay 0.01 \
     --use_lora \
     --lora_rank 64 \
     --lora_alpha 16 \
