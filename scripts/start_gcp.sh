@@ -12,6 +12,9 @@ sudo mkdir /mnt/data
 sudo mount /dev/sdb /mnt/data
 
 cd /mnt/data
+
+sudo chmod 777 /mnt/data
+
 # install anaconda
 conda activate
 
