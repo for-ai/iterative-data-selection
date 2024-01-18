@@ -37,7 +37,7 @@ selector = methods.__dict__[method_name](dataset, dataset_config=config['dataset
 # Select subset
 subset_indices = selector.select()
 
-with open(f'indices/{dataset_name}_{method_name}_{str(fraction)}.pkl', 'wb') as f:
+with open(f'indices/{dataset_name}_{method_name}_{str(fraction)}_main.pkl', 'wb') as f:
     pickle.dump(subset_indices, f)
 
 # nohup python main.py > logs/main.log 2>&1 &
