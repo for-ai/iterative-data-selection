@@ -19,8 +19,7 @@ class Uniform_Upsample(CoresetMethod):
 
         unique_labels = np.unique(labels)
 
-        total_size = len(labels)
-        average_samples_per_label = total_size // len(unique_labels)
+        average_samples_per_label = self.coreset_size // len(unique_labels)
         # Check for underrepresented labels and issue warnings
         selected_indices = []
         for label in unique_labels:
