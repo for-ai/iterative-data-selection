@@ -6,10 +6,10 @@ dataset:
     data_column: 'input'
 
 coreset_method:
-  # Supported: Uniform, Random, KMeansCentroids, KMeansRandom
+  # Supported: Uniform, Random, KMeansCentroids, KMeansRandom, Uniform_Upsample
   # name: 'Uniform'
   # name: 'Random'
-  name: 'KMeansRandom'
+  name: 'Uniform_Upsample'
   args:
     fraction: 0.1
     random_seed: 42
