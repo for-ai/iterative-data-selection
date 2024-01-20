@@ -13,7 +13,7 @@ MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
 # EVAL_DATASET_NAME=simonycl/p3_0.5_dataset
 DATASET_FILE=simonycl/p3_0.5_dataset
 
-MODEL_NAME=Llama-2-7b-hf-p3-uniform
+MODEL_NAME=Llama-2-7b-hf-p3-uniform-lr-5e-5
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
 echo "Training llama model ${MODEL_SIZE} using $NUM_GPUS GPUs, $BATCH_SIZE_PER_GPU batch size per GPU, $GRADIENT_ACC_STEPS gradient accumulation steps"
@@ -30,7 +30,7 @@ python3 \
     --checkpointing_steps epoch \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
-    --learning_rate 1e-5 \
+    --learning_rate 5e-5 \
     --lr_scheduler_type linear \
     --warmup_ratio 0.05 \
     --weight_decay 0.01 \

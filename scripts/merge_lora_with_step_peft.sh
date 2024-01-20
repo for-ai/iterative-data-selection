@@ -64,7 +64,7 @@ MODEL_NAME=Llama-2-7b-hf-p3-full
 #         --eval_batch_size 16
 # done
 
-for peft in simonycl/data-selection-Llama-2-7b-p3-kmeanscenter-epoch-18 simonycl/data-selection-Llama-2-7b-p3-kmeansrandom-epoch-15 simonycl/data-selection-Llama-2-7b-p3-random-epoch-15 simonycl/data-selection-Llama-2-7b-p3-uniform-epoch-20
+for peft in simonycl/data-selection-Llama-2-7b-p3-random-lr-3e-5-epoch-19
 do
     PEFT_PATH=$peft
     # extract the model name from split string by delimiter '-' and get the third last element
@@ -81,4 +81,4 @@ do
         --eval_batch_size 16
 done
 
-# nohup bash scripts/merge_lora_with_step.sh > output/p3-full-epoch-0-eval-results.log 2>&1 &
+# nohup bash scripts/merge_lora_with_step_peft.sh > output/p3-random-0.1-lr-3e-5-epoch-19-eval-results.log 2>&1 &
