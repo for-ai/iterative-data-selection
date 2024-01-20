@@ -1,10 +1,4 @@
-dataset:
-  name: '/mnt/data/data-selection/data/processed/sharegpt/sharegpt_data.jsonl'
-  split: 'train'
-  args:
-    label_column: 'dataset'
-    data_column: 'messages'
-    idx_column: 'id'
+ v
 
 coreset_method:
   # Supported: Uniform, Random, KMeansCentroids

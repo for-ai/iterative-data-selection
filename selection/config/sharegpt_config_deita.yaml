@@ -1,0 +1,20 @@
+dataset:
+  name: '/mnt/data/data-selection/data/processed/sharegpt/sharegpt_data.jsonl'
+  split: 'train'
+  args:
+    label_column: 'dataset'
+    data_column: 'messages'
+    idx_column: 'id'
+
+coreset_method:
+  # Supported: Uniform, Random, KMeansCentroids, KMeansRandom, Uniform_Upsample
+  # name: 'Uniform'
+  # name: 'Random'
+  name: 'DeitaGreedy'
+  args:
+    fraction: 0.001
+    random_seed: 42
+    encoder_config:
+      batch_size: 16
+      # model_name: 'intfloat/e5-large-v2'
+      model_name: 'meta-llama/Llama-2-7b-hf'

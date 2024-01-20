@@ -6,14 +6,17 @@ from datasets import load_dataset
 import methods
 import yaml
 import pickle
-
+import argparse
    
 def read_config(config_path):
     with open(config_path, 'r') as file:
         return yaml.safe_load(file)
     
-    
-config = read_config('./config/p3_config.yaml')
+parser = argparse.ArgumentParser()
+parser.add_argument('--config', type=str, default='p3_config', help='Path to config file')
+args = parser.parse_args()
+
+config = read_config(f'configs/{args.config}.yaml')
 # Load dataset
 dataset_path = config['dataset']['name']
 if dataset_path.endswith('json') or dataset_path.endswith('jsonl'):

@@ -11,7 +11,6 @@ from .coresetmethod import CoresetMethod
 import sys
 sys.path.append('../')
 from encoder import AutoEncoder
-from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 import random
 
@@ -20,7 +19,7 @@ class KMeansRandom(CoresetMethod):
         super().__init__(dataset, dataset_config, method_config)
         self.K = K
         self._is_raking = False
-
+        
     def select(self):
         data = self._extract_data()
 

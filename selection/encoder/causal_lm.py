@@ -30,13 +30,13 @@ class ModelBasedEncoder(Encoder):
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = "left"
         self.max_seq_length = self.config['max_seq_length'] if 'max_seq_length' in self.config else self.model.config.max_position_embeddings - 2
-
+        self.hidden_size = self.model.config.hidden_size
         
     @torch.no_grad()
     def encode(self, sentences, batch_size=256, device='cuda', show_progress_bar=True, aggregate_method='mean'):
         if 'batch_size' in self.config:
             batch_size = self.config['batch_size']
-        embeddings = torch.zeros((len(sentences), self.model.config.hidden_size))
+        embeddings = torch.zeros((len(sentences), self.hidden_size))
         for i in trange(0, len(sentences), batch_size):
             batch_instances = sentences[i:i+batch_size]
             tokenized_example = self.tokenizer(batch_instances, return_tensors='pt', padding="longest")
