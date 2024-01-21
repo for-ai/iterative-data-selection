@@ -14,14 +14,41 @@ from encoder import AutoEncoder
 from tqdm import tqdm
 import random
 
+    
+def _concat_messages(messages, tokenizer):
+    message_text = ""
+    for message in messages:
+        if message["role"] == "system":
+            message_text += "<|system|>\n" + message["content"].strip() + "\n"
+        elif message["role"] == "user":
+            message_text += "<|user|>\n" + message["content"].strip() + "\n"
+        elif message["role"] == "assistant":
+            message_text += "<|assistant|>\n" + message["content"].strip() + tokenizer.eos_token + "\n"
+        else:
+            raise ValueError("Invalid role: {}".format(message["role"]))
+    return message_text
+
 class KMeansRandom(CoresetMethod):
-    def __init__(self, dataset, dataset_config, method_config, K=20):
+    def __init__(self, dataset, dataset_config, method_config, K=1024):
         super().__init__(dataset, dataset_config, method_config)
         self.K = K
         self._is_raking = False
-        
+        self.embedding_cache_path = method_config.get('embedding_cache_path', None)
+        if self.embedding_cache_path is None:
+            self.embedding_cache_path = "embeddings.npy"
+
     def select(self):
-        data = self._extract_data()
+        if self.embedding_cache_path is not None:
+            try:
+                print("Loading embeddings from cache...")
+                data = np.load(self.embedding_cache_path)
+                print("Loaded embeddings from cache.")
+            except FileNotFoundError:
+                print("Embedding cache not found. Extracting embeddings from dataset...")
+                data = self._extract_data()
+                print("Saving embeddings to cache...")
+                np.save(self.embedding_cache_path, data)
+                print("Saved embeddings to cache.")
 
         print("Performing K-means clustering...")
         # Perform K-means clustering
@@ -40,7 +67,10 @@ class KMeansRandom(CoresetMethod):
         # This method needs to be implemented according to the format of your dataset
         sentences = self.dataset[self.dataset_config['data_column']]
         model = AutoEncoder(self.method_config['encoder_config'])
-        embeddings = model.encode(sentences, batch_size=512, device='cuda', show_progress_bar=True)
+        # check if sentences is string or list
+        if not isinstance(sentences[0], str):
+            sentences = [_concat_messages(sentence, model.encoder.tokenizer) for sentence in tqdm(sentences, desc="Concatenating messages")]
+        embeddings = model.encode(sentences, batch_size=64, device='cuda', show_progress_bar=True)
         return embeddings
 
     def _select_random_samples(self, data, labels):

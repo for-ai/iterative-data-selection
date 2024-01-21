@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='p3_config', help='Path to config file')
 args = parser.parse_args()
 
-config = read_config(f'configs/{args.config}.yaml')
+config = read_config(f'./config/{args.config}.yaml')
 # Load dataset
 dataset_path = config['dataset']['name']
 if dataset_path.endswith('json') or dataset_path.endswith('jsonl'):

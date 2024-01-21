@@ -317,6 +317,12 @@ def main():
     # init wandb
     if args.with_tracking:
         wandb.init(project="open_instruct", entity="simon011130", config=vars(args), name=args.output_dir)
+        wandb.alert(
+            title="Training Started",
+            text=f"Training started for {args.output_dir}",
+            level=wandb.AlertLevel.INFO,
+        )
+        
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",

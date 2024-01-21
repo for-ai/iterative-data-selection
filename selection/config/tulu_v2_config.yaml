@@ -1,5 +1,5 @@
 dataset:
-  name: '/mnt/data/data-selection/data/processed/sharegpt/sharegpt_data.jsonl'
+  name: '/mnt/data/open-instruct/data/processed/tulu_v2/tulu_v2_data.jsonl'
   split: 'train'
   args:
     label_column: 'dataset'
@@ -15,8 +15,7 @@ coreset_method:
   args:
     fraction: 0.1
     random_seed: 42
-    scores_path: '/mnt/data/data-selection/data/processed/sharegpt/scores.jsonl'
-    embedding_cache_path: '/mnt/data/data-selection/data/processed/sharegpt/embeddings.npy'
+    embedding_cache_path: '/mnt/data/open-instruct/data/processed/tulu_v2/tulu_v2_embeddings.npy'
     encoder_config:
       batch_size: 4
       model_name: 'meta-llama/Llama-2-7b-hf'
