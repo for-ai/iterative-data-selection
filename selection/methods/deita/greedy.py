@@ -1,47 +1,42 @@
-from ..coresetmethod import CoresetMethod
+from .scorefaiss import DeitaScoreFaiss
 import numpy as np
 import json
-import sys
-sys.path.append('../../')
-from encoder import AutoEncoder
 import faiss
+from tqdm import tqdm
 
-class DeitaGreedy(CoresetMethod):
+class KCenterGreedyDeita(DeitaScoreFaiss):
     def __init__(self, dataset, dataset_config, method_config):
         super().__init__(dataset, dataset_config, method_config)
         self._is_raking = True
-        self._scores_path = method_config.get('scores_path', None)
-        assert self._scores_path is not None, "scores_path must be specified in the config"
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
-        self.encoder = AutoEncoder(self.method_config['encoder_config'])
-        self.batch_size = self.method_config['encoder_config']['batch_size'] if 'batch_size' in self.method_config['encoder_config'] else 256
-        self.faiss = faiss.IndexFlatL2(self.encoder.encoder.model.hidden_size)
-        
-    def _greedy_select(self, scores, coreset_size, threshold=0.9):
-        indices = []
-        idx = 0
-        while (len(indices) < coreset_size) and (idx < len(scores)):
-            top_most_indices = scores[idx:idx+self.batch_size]
-            # TODO how do you deal with the case when input data is multi-round dialogues?
-            sentences = [self.dataset[idx] for idx in top_most_indices]
-            embeddings = self.encoder.encode(sentences, batch_size=self.batch_size)
-            embeddings = embeddings.astype('float32')
-            distances, _indices = self.faiss.search(embeddings, 1)
+        self.threshold = method_config.get('threshold', 0.9)
 
-            for i, (distance, index) in enumerate(zip(distances, _indices)):
-                if distance[0] > threshold:
-                    indices.append(top_most_indices[i])
-                    self.faiss.add(embeddings[i])
-            idx += self.batch_size
-
-        return indices
-    
     def select(self):
-        with open(self._scores_path, "r") as f:
-            lines = f.readlines()
-        scores = [json.loads(line)['eval_score'] for line in lines]
-        indices = self._greedy_select(scores, self.coreset_size)
+        embeddings = self.get_embeddings()
+
+        evol_scores, evol_ranking = self.get_scores()
+
+        d = embeddings.shape[1]
+        index = faiss.IndexFlatL2(d)
+
+        indices = []
+        pbar = tqdm(total=self.coreset_size, desc="Greedy Selection")
+        for idx in evol_ranking:
+            if len(indices) >= self.coreset_size:
+                break
+            elif len(indices) == 0:
+                indices.append(idx)
+                index.add(embeddings[idx:idx+1])
+                pbar.update(1)
+                continue
+            else:
+                distances, _ = index.search(embeddings[idx:idx+1], 1)
+                if distances[0][0] < self.threshold:
+                    continue
+                else:
+                    indices.append(idx)
+                    index.add(embeddings[idx:idx+1])
+                    pbar.update(1)
 
         return {'indices': indices}
-    
