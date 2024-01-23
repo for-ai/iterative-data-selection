@@ -60,6 +60,13 @@ def parse_args():
         "--train_file", type=str, default=None, help="A csv or a json file containing the training data."
     )
     parser.add_argument(
+        "--tracker_model_name",
+        type=str,
+        default=None,
+        help="The name of the model to use for the trackers.",
+        required=False,
+    )
+    parser.add_argument(
         "--model_name_or_path",
         type=str,
         help="Path to pretrained model or model identifier from huggingface.co/models.",
@@ -313,6 +320,9 @@ def main():
         accelerator_log_kwargs["project_dir"] = args.output_dir
 
     accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps, **accelerator_log_kwargs)
+    if (args.with_tracking) and (args.tracker_model_name is not None):
+        accelerator.init_trackers("open_instruct", config={}, init_kwargs={"wandb":{"name": args.tracker_model_name}})
+
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
