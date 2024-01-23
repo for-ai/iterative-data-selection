@@ -64,7 +64,7 @@ MODEL_NAME=Llama-2-7b-hf-p3-full
 #         --eval_batch_size 16
 # done
 
-for peft in simonycl/data-selection-Llama-2-7b-p3-random-lr-3e-5-epoch-19
+for peft in simonycl/data-selection-Llama-2-7b-p3-uniform-upsample-epoch-24
 do
     PEFT_PATH=$peft
     # extract the model name from split string by delimiter '-' and get the third last element

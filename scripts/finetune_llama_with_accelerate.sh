@@ -8,10 +8,9 @@ TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
 # MODEL_NAME_OR_PATH=/mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged_step_2000
 
-DATASET_FILE=simonycl/p3_0.5_dataset
 TRAIN_FILE=data/processed/sharegpt/sharegpt_data.jsonl
 
-MODEL_NAME=Llama-2-7b-hf-sharegpt
+MODEL_NAME=Llama-2-7b-hf-sharegpt-lora
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
 echo "Training llama model ${MODEL_SIZE} using $NUM_GPUS GPUs, $BATCH_SIZE_PER_GPU batch size per GPU, $GRADIENT_ACC_STEPS gradient accumulation steps"
@@ -33,20 +32,20 @@ accelerate launch \
     --checkpointing_steps 200 \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
-    --learning_rate 1e-5 \
+    --learning_rate 3e-5 \
     --lr_scheduler_type linear \
-    --warmup_ratio 0.00 \
-    --weight_decay 0.10 \
+    --warmup_ratio 0.03 \
+    --weight_decay 0.00 \
     --use_lora \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 3 \
+    --num_train_epochs 5 \
     --do_eval \
-    --eval_file data/processed/ultrachat/test_200.jsonl \
-    --eval_steps 100 \
+    --eval_file data/processed/ultrachat/test_1000.jsonl \
+    --eval_steps 5 \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
-    --resume_from_checkpoint /mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora/step_7800 \
+    --selection_indices /mnt/data/data-selection/selection/indices/sharegpt_KCenterGreedyDeita_0.05.pkl \
     --output_dir output/data_selection_${MODEL_NAME}_lora \
     --with_tracking \
     --logging_steps 10 \

@@ -415,6 +415,7 @@ def main():
                 config=config,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 use_flash_attention_2=True if args.use_flash_attn else False,
+                torch_dtype=torch.bfloat16,
             )
     else:
         logger.info("Training new model from scratch")
@@ -487,9 +488,11 @@ def main():
             tokenizer=tokenizer,
             max_seq_length=args.max_seq_length,
         )
+    elif "input_ids" in raw_datasets["train"].column_names and "labels" in raw_datasets["train"].column_names:
+        # encode function is then an identity function
+        encode_function = lambda x: x
     else:
         raise ValueError("You need to have either 'input'&'output' or 'messages' in your column names.")
-    
     
     with accelerator.main_process_first():
         # eval_dataset = None
@@ -528,10 +531,11 @@ def main():
                 eval_dataset = eval_dataset.filter(lambda example: (example['labels'] != -100).any())
 
     train_dataset = lm_datasets["train"]
-    if eval_dataset is None:
-        eval_dataset = lm_datasets["test"]
-    # else:
-    #     eval_dataset = eval_dataset["test"]
+    if args.do_eval:
+        if eval_dataset is None:
+            eval_dataset = lm_datasets["test"]
+        else:
+            eval_dataset = eval_dataset["test"]
 
     print(len(train_dataset))
     # Log a few random samples from the training set:
@@ -700,7 +704,6 @@ def main():
     if args.do_eval:
         model.eval()
         if args.eval_task and args.eval_task == "nli":
-
             eval_acc = 0
             for step, batch in enumerate(tqdm(eval_dataloader)):
                 with torch.no_grad():
@@ -818,8 +821,8 @@ def main():
                 sys.exit(1)
 
             # Evaluate the model if needed
-            if args.do_eval:
-                if isinstance(eval_steps, int) and completed_steps % eval_steps == 0:
+            if (accelerator.sync_gradients) and (args.do_eval):
+                if isinstance(eval_steps, int) and (completed_steps % eval_steps == 0):
                     model.eval()
                     if args.eval_task and args.eval_task == "nli":
                         eval_acc = 0
