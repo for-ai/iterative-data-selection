@@ -19,7 +19,7 @@ class KMenasMedianDeita(DeitaScoreFaiss):
         index = faiss.IndexFlatL2(d)
         index.add(embeddings)
 
-        kmeans = faiss.Kmeans(d, self.K, niter=200, verbose=True, nredo=5, gpu=True)
+        kmeans = faiss.Kmeans(d, self.K, niter=75, verbose=True, nredo=5, gpu=True)
         kmeans.train(embeddings)
 
         # get which centroid each embedding belongs to
@@ -33,14 +33,13 @@ class KMenasMedianDeita(DeitaScoreFaiss):
             indices_i = np.where(indices == i)[0]
             scores_i = evol_scores[indices_i]
             
-            # select by random with probability proportional to score
-            # set those scores < 0 to 0
-            scores_i = np.maximum(scores_i, 0)
-            p = scores_i / np.sum(scores_i)
+            # compute the median score
+            median_score = np.median(scores_i)
 
             # handle the cases where some cluster has less than coreset_size/K elements
             size = np.minimum(int(self.coreset_size/self.K), len(indices_i))
-            indices_i = np.random.choice(indices_i, size=size, replace=False, p=p)
+            # select size # of elements with the closest score to the median score
+            indices_i = indices_i[np.argsort(np.abs(scores_i - median_score))][:size]
             final_indices = np.concatenate((final_indices, indices_i))
 
         print(final_indices.shape)

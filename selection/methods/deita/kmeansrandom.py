@@ -4,7 +4,7 @@ import json
 import faiss
 
 class KMenasRandomDeita(DeitaScoreFaiss):
-    def __init__(self, dataset, dataset_config, method_config, K=1024):
+    def __init__(self, dataset, dataset_config, method_config, K=512):
         super().__init__(dataset, dataset_config, method_config)
         self.K = K
         self._is_raking = True
@@ -19,7 +19,7 @@ class KMenasRandomDeita(DeitaScoreFaiss):
         index = faiss.IndexFlatL2(d)
         index.add(embeddings)
 
-        kmeans = faiss.Kmeans(d, self.K, niter=200, verbose=True, nredo=5, gpu=True)
+        kmeans = faiss.Kmeans(d, self.K, niter=75, verbose=True, nredo=5, gpu=True)
         kmeans.train(embeddings)
 
         # get which centroid each embedding belongs to
@@ -34,9 +34,10 @@ class KMenasRandomDeita(DeitaScoreFaiss):
             scores_i = evol_scores[indices_i]
             
             # select by random with probability proportional to score
-            # set those scores < 0 to 0
-            scores_i = np.maximum(scores_i, 0)
+            # get the probability with softmax
+            scores_i = np.exp(scores_i)
             p = scores_i / np.sum(scores_i)
+            
 
             # handle the cases where some cluster has less than coreset_size/K elements
             size = np.minimum(int(self.coreset_size/self.K), len(indices_i))
