@@ -37,7 +37,7 @@ accelerate launch \
     --checkpointing_steps epoch \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
-    --learning_rate 5e-5 \
+    --learning_rate 2e-4 \
     --lr_scheduler_type linear \
     --warmup_ratio 0.03 \
     --weight_decay 0.00 \
@@ -45,7 +45,7 @@ accelerate launch \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 5 \
+    --num_train_epochs 10 \
     --do_eval \
     --eval_file data/processed/ultrachat/test_1000.jsonl \
     --eval_steps 40 \
