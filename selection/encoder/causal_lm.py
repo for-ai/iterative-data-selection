@@ -36,6 +36,7 @@ class ModelBasedEncoder(Encoder):
     def encode(self, sentences, batch_size=256, device='cuda', show_progress_bar=True, aggregate_method='mean'):
         if 'batch_size' in self.config:
             batch_size = self.config['batch_size']
+        self.model = self.model.to(device)
         embeddings = torch.zeros((len(sentences), self.hidden_size))
         for i in trange(0, len(sentences), batch_size):
             batch_instances = sentences[i:i+batch_size]
