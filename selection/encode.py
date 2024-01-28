@@ -31,15 +31,15 @@ def extract_embeddings(dataset, model, concat_method):
     model = AutoEncoder(config)
     messages = dataset[data_column]
     sentences = [concat_messages(message, concat_method) for message in tqdm(messages, desc="Concatenating messages")]
-    embeddings = model.encode(sentences, batch_size=8, device='cuda:1', show_progress_bar=True)
+    embeddings = model.encode(sentences, batch_size=2, device='cuda', show_progress_bar=True)
     return embeddings
     
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='/mnt/data/data-selection/data/processed/wizardlm/wizardlm_data.jsonl')
+    parser.add_argument('--dataset', type=str, default='/mnt/ceph_rbd/data-selection/data/processed/wizardlm/wizardlm_data.jsonl')
     parser.add_argument('--model', type=str, default='meta-llama/Llama-2-7b-hf')
     parser.add_argument('--concat_method', type=str, default='tulu_v1')
-    parser.add_argument('--output', type=str, default='/mnt/data/data-selection/data/processed/wizardlm/embeddings.npy')
+    parser.add_argument('--output', type=str, default='/mnt/ceph_rbd/data-selection/data/processed/wizardlm/embeddings.npy')
     args = parser.parse_args()
     
     dataset = load_dataset('json', data_files=args.dataset, split='train')
