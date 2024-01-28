@@ -12,9 +12,9 @@ TRAIN_FILE=data/processed/sharegpt/sharegpt_data.jsonl
 STEP_NAME=""
 EPOCH_NAME=""
 
-MODEL_NAME=Llama-2-7b-hf-sharegpt-KMenasRandomDeita-1024-005-lora-epoch_4
+MODEL_NAME=Llama-2-7b-hf-sharegpt-KMenasRandomDeita-512-0.05-lora-epoch_4
 
-for peft in simonycl/data-selection-Llama-2-7b-sharegpt-KMenasRandomDeita-1024-0.05-lora-epoch_4
+for peft in simonycl/data-selection-Llama-2-7b-sharegpt-KMenasRandomDeita-512-0.05-lora-epoch_4
 do
     PEFT_PATH=$peft
     # extract the model name from split string by delimiter '-' and get the third last element
@@ -32,3 +32,7 @@ bash eval_model.sh /mnt/data/data-selection/output/data_selection_${MODEL_NAME} 
 
 cd /mnt/data/data-selection/
 bash scripts/eval/cohere.sh /mnt/data/data-selection/output/data_selection_${MODEL_NAME} data_selection_$MODEL_NAME > /mnt/data/EasyLM/eval_results/data_selection_$MODEL_NAME-mmlu.log
+
+# nohup bash scripts/evaluation_lora.sh > ./logs/evaluation_lora_Llama-2-7b-hf-sharegpt-KMenasRandomDeita-64-005-lora-epoch_4.log 2>&1 &
+
+# nohup bash scripts/evaluation_lora.sh > ./logs/evaluation_lora_Llama-2-7b-hf-sharegpt-KMenasRandomDeita-512-0.05-lora-epoch_4.log 2>&1 &
