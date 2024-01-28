@@ -33,8 +33,8 @@ class ModelBasedEncoder(Encoder):
         self.hidden_size = self.model.config.hidden_size
         
     @torch.no_grad()
-    def encode(self, sentences, batch_size=256, device='cuda', show_progress_bar=True, aggregate_method='mean'):
-        if 'batch_size' in self.config:
+    def encode(self, sentences, batch_size=None, device='cuda', show_progress_bar=True, aggregate_method='mean'):
+        if ('batch_size' in self.config) and (batch_size is None):
             batch_size = self.config['batch_size']
         self.model = self.model.to(device)
         embeddings = torch.zeros((len(sentences), self.hidden_size))
@@ -42,9 +42,10 @@ class ModelBasedEncoder(Encoder):
             batch_instances = sentences[i:i+batch_size]
             tokenized_example = self.tokenizer(batch_instances, return_tensors='pt', padding="longest")
             batch_last_hidden_states = self.model(**tokenized_example.to(device), output_hidden_states=True).hidden_states[-1]
-            embeddings[i:i+batch_size] = last_token_pool(batch_last_hidden_states, tokenized_example['attention_mask'])
-
-        return embeddings.detach().cpu().numpy()
+            embeddings[i:i+batch_size] = last_token_pool(batch_last_hidden_states, tokenized_example['attention_mask']).detach().cpu()
+            del tokenized_example
+            del batch_last_hidden_states
+        return embeddings.numpy()
 
 
 # # sanity check
