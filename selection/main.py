@@ -45,6 +45,7 @@ if method_name == "KMenasRandomDeita":
 else:
     selector = methods.__dict__[method_name](dataset, dataset_config=config['dataset']['args'], method_config=config['coreset_method']['args'])
 
+print(f"Selecting {method_name} subset of size {fraction}...")
 # Select subset
 subset_indices = selector.select()
 
