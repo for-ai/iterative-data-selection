@@ -27,6 +27,7 @@ def extract_embeddings(dataset, model, concat_method):
         'use_flash_attn': True,
         'is_8bit': False,
         'batch_size': 4,
+        'max_seq_length': 8070,
     }
     model = AutoEncoder(config)
     messages = dataset[data_column]
@@ -38,7 +39,7 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('--dataset', type=str, default='/mnt/ceph_rbd/data-selection/data/processed/wizardlm/wizardlm_data.jsonl')
     parser.add_argument('--model', type=str, default='meta-llama/Llama-2-7b-hf')
-    parser.add_argument('--concat_method', type=str, default='tulu_v1')
+    parser.add_argument('--concat_method', type=str, default='tulu')
     parser.add_argument('--output', type=str, default='/mnt/ceph_rbd/data-selection/data/processed/wizardlm/embeddings.npy')
     args = parser.parse_args()
     

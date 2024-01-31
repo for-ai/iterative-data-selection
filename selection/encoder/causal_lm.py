@@ -40,7 +40,7 @@ class ModelBasedEncoder(Encoder):
         embeddings = torch.zeros((len(sentences), self.hidden_size))
         for i in trange(0, len(sentences), batch_size):
             batch_instances = sentences[i:i+batch_size]
-            tokenized_example = self.tokenizer(batch_instances, return_tensors='pt', padding="longest")
+            tokenized_example = self.tokenizer(batch_instances, return_tensors='pt', padding="longest", max_length=self.max_seq_length, truncation=True)
             batch_last_hidden_states = self.model(**tokenized_example.to(device), output_hidden_states=True).hidden_states[-1]
             embeddings[i:i+batch_size] = last_token_pool(batch_last_hidden_states, tokenized_example['attention_mask']).detach().cpu()
             del tokenized_example
