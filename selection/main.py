@@ -45,6 +45,7 @@ def main(cfg: DictConfig) -> None:
     cfg.data: DictConfig
     cfg.coreset: DictConfig
     '''
+
     dataset, dataset_name = get_dataset(cfg.data)
     method_name = cfg.coreset.name
     fraction = cfg.coreset.fraction

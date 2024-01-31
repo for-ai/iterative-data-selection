@@ -22,6 +22,17 @@ def concat_tulu_messages(messages):
             raise ValueError("Invalid role: {}".format(message["role"]))
     return message_text
 
+def concat_tulu_messages_only_user(messages):
+    message_text = ""
+    for message in messages:
+        if message["role"] == "system":
+            message_text += "<|system|>\n" + message["content"].strip() + "\n"
+        elif message["role"] == "user":
+            message_text += "<|user|>\n" + message["content"].strip() + "\n"
+        
+        message_text = message_text.strip("\n")
+    return message_text
+
 @dataclasses.dataclass
 class Conversation:
     """A class that keeps all conversation history."""

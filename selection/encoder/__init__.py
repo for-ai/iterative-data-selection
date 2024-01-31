@@ -1,7 +1,7 @@
 from .base import Encoder
 from .sentence_transformer import SemanticBasedEncoder
 from .causal_lm import ModelBasedEncoder
-from .utils import concat_tulu_messages, Conversation, SeparatorStyle, get_default_conv_template
+from .utils import concat_tulu_messages, Conversation, SeparatorStyle, get_default_conv_template, concat_tulu_messages_only_user
 
 class AutoEncoder(Encoder):
     def __init__(self, config):
