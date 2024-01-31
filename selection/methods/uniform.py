@@ -28,14 +28,14 @@ def quasi_uniform_sampling(label_counts, num_samples):
     return adjusted_samples
 
 class Uniform(CoresetMethod):
-    def __init__(self, dataset, dataset_config, method_config):
-        super().__init__(dataset, dataset_config, method_config)
+    def __init__(self, dataset, data_config, method_config, encoder_config=None):
+        super().__init__(dataset, data_config, method_config, encoder_config)
         self._is_raking = False
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
 
     def select(self):
-        label_column = self.dataset_config['label_column']
+        label_column = self.data_config['label_column']
         labels = np.array(self.dataset[label_column])
 
         unique_labels = np.unique(labels)

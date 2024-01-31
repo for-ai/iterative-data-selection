@@ -4,57 +4,70 @@ Select data subset from a HF dataset using a coreset selection method.
 
 from datasets import load_dataset
 import methods
-import yaml
 import pickle
 import argparse
 import os
-
-os.environ['LD_LIBRARY_PATH'] = '/mnt/data/selection/lib:$LD_LIBRARY_PATH'
-
-def read_config(config_path):
-    with open(config_path, 'r') as file:
-        return yaml.safe_load(file)
+import hydra
+from omegaconf import DictConfig, OmegaConf
     
-parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, default='p3_config', help='Path to config file')
-args = parser.parse_args()
+def get_dataset(data_config: DictConfig):
+    dataset_path = data_config.name
+    if dataset_path.endswith('json') or dataset_path.endswith('jsonl'):
+        dataset = load_dataset('json', data_files=dataset_path)
+    elif dataset_path.endswith('csv'):
+        dataset = load_dataset('csv', data_files=dataset_path)
+    else:
+        dataset = load_dataset(dataset_path)
+    if 'split' in data_config:
+        dataset = dataset[data_config.split]
 
-
-config = read_config(f'./config/{args.config}.yaml')
-# Load dataset
-dataset_path = config['dataset']['name']
-if dataset_path.endswith('json') or dataset_path.endswith('jsonl'):
-    dataset = load_dataset('json', data_files=dataset_path)
-elif dataset_path.endswith('csv'):
-    dataset = load_dataset('csv', data_files=dataset_path)
-else:
-    dataset = load_dataset(dataset_path)
-
-dataset_name = dataset_path.split('/')[-1].split('_')[0]
-
-if 'split' in config['dataset']:
-    dataset = dataset[config['dataset']['split']]
-    # dataset = dataset.shuffle()
+    dataset_name = dataset_path.split('/')[-1].split('_')[0]
+    return dataset, dataset_name
 
 # Initialize selector according to yml
-method_name = config['coreset_method']['name']
-fraction = config['coreset_method']['args']['fraction']
-if method_name == "KMenasRandomDeita":
-    K = config['coreset_method']['args']['K']
-    selector = methods.__dict__[method_name](dataset, dataset_config=config['dataset']['args'], method_config=config['coreset_method']['args'], K=K)
-else:
-    selector = methods.__dict__[method_name](dataset, dataset_config=config['dataset']['args'], method_config=config['coreset_method']['args'])
 
-print(f"Selecting {method_name} subset of size {fraction}...")
-# Select subset
-subset_indices = selector.select()
+def get_subset_indices(dataset, data_config, method_config, encoder_config):
+    method_name = method_config.name
+    if method_name == "KMenasRandomDeita":
+        K = method_config.K
+        selector = methods.__dict__[method_name](dataset, data_config=data_config, method_config=method_config, encoder_config=encoder_config, K=K)
+    else:
+        selector = methods.__dict__[method_name](dataset, data_config=data_config, method_config=method_config, encoder_config=encoder_config)
+    subset_indices = selector.select()
 
-if method_name == "KMenasRandomDeita":
-    with open(f'indices/{dataset_name}_{method_name}_{str(fraction)}_{str(K)}.pkl', 'wb') as f:
-        pickle.dump(subset_indices, f)
-else:
-    with open(f'indices/{dataset_name}_{method_name}_{str(fraction)}.pkl', 'wb') as f:
-        pickle.dump(subset_indices, f)
+    return subset_indices
 
+
+@hydra.main(version_base=None, config_path="config", config_name="config")
+def main(cfg: DictConfig) -> None:
+    '''
+    cfg: DictConfig
+    cfg.data: DictConfig
+    cfg.coreset: DictConfig
+    '''
+    dataset, dataset_name = get_dataset(cfg.data)
+    method_name = cfg.coreset.name
+    fraction = cfg.coreset.fraction
+    encoder_config = cfg.encoder if 'encoder' in cfg else None
+
+    subset_indices = get_subset_indices(dataset, cfg.data, cfg.coreset, encoder_config)
+    print(f"Selecting {method_name} subset of size {fraction}...")
+
+    output_name = f'indices/{dataset_name}_{method_name}_{str(fraction)}.pkl'
+    if encoder_config is not None:
+        encoder_name = encoder_config.model_name
+        if '/' in encoder_name:
+            encoder_name = encoder_name.split('/')[-1]
+        output_name = output_name.replace('.pkl', f'_{encoder_name}.pkl')
+    if method_name == "KMenasRandomDeita":
+        K = cfg.coreset.K
+        output_name = output_name.replace('.pkl', f'_{str(K)}.pkl')
+
+    print(f"Saving indices to {output_name}...")
+    # with open(output_name, 'wb') as f:
+    #     pickle.dump(subset_indices, f)
+
+if __name__ == "__main__":
+    main()
 # nohup python main.py > logs/main.log 2>&1 &
 # export LD_LIBRARY_PATH=/mnt/data/selection/lib:$LD_LIBRARY_PATH

@@ -12,8 +12,8 @@ from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
 class KMeansCentroids(CoresetMethod):
-    def __init__(self, dataset, dataset_config, method_config):
-        super().__init__(dataset, dataset_config, method_config)
+    def __init__(self, dataset, data_config, method_config, encoder_config=None):
+        super().__init__(dataset, data_config, method_config, encoder_config)
         self._is_raking = False
 
     def select(self):
@@ -35,7 +35,7 @@ class KMeansCentroids(CoresetMethod):
     def _extract_data(self):
         # Extract the data as a NumPy array from the dataset
         # This method needs to be implemented according to the format of your dataset
-        sentences = self.dataset[self.dataset_config['data_column']]
+        sentences = self.dataset[self.data_config['data_column']]
         model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
         embeddings = model.encode(sentences, batch_size=1024, device='cuda', show_progress_bar=True)
         

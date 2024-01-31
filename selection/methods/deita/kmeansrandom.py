@@ -4,8 +4,8 @@ import json
 import faiss
 
 class KMenasRandomDeita(DeitaScoreFaiss):
-    def __init__(self, dataset, dataset_config, method_config, K=512):
-        super().__init__(dataset, dataset_config, method_config)
+    def __init__(self, dataset, data_config, method_config, K=512):
+        super().__init__(dataset, data_config, method_config)
         self.K = K
         self._is_raking = True
         if self.random_seed is not None:

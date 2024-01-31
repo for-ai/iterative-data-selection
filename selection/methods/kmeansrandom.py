@@ -29,8 +29,8 @@ def _concat_messages(messages, tokenizer):
     return message_text
 
 class KMeansRandom(CoresetMethod):
-    def __init__(self, dataset, dataset_config, method_config, K=1024):
-        super().__init__(dataset, dataset_config, method_config)
+    def __init__(self, dataset, data_config, method_config, encoder_config=None, K=1024):
+        super().__init__(dataset, data_config, method_config, encoder_config)
         self.K = K
         self._is_raking = False
         self.embedding_cache_path = method_config.get('embedding_cache_path', None)
@@ -65,7 +65,7 @@ class KMeansRandom(CoresetMethod):
     def _extract_data(self):
         # Extract the data as a NumPy array from the dataset
         # This method needs to be implemented according to the format of your dataset
-        sentences = self.dataset[self.dataset_config['data_column']]
+        sentences = self.dataset[self.data_config['data_column']]
         model = AutoEncoder(self.method_config['encoder_config'])
         # check if sentences is string or list
         if not isinstance(sentences[0], str):

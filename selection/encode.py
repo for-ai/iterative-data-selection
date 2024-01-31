@@ -1,5 +1,5 @@
 # CUDA_VISIBLE_DEVICES=1 python selection/encode.py
-from encoder import AutoEncoder, get_default_conv_template, concat_tulu_messages
+from encoder import AutoEncoder, get_default_conv_template, concat_tulu_messages, concat_tulu_messages_only_user
 from tqdm import tqdm
 from argparse import ArgumentParser
 from datasets import load_dataset
@@ -18,6 +18,8 @@ def concat_messages(messages, concat_method):
             role, content = message["role"], message["content"]
             template.append_message(role, content)
         return template.get_prompt()
+    elif concat_method == "tulu_user_only":
+        return concat_tulu_messages_only_user(messages)
     else:
         raise ValueError(f"Invalid concat method: {concat_method}")
     
@@ -45,7 +47,6 @@ def main():
     
     dataset = load_dataset('json', data_files=args.dataset, split='train')
     # select top 100
-    dataset = dataset.select(range(1000))
     embeddings = extract_embeddings(dataset, args.model, args.concat_method)
     np.save(args.output, embeddings)
 
