@@ -13,7 +13,7 @@ class KCenterGreedyDeita(DeitaScoreFaiss):
         self.threshold = method_config.get('threshold', 0.9)
 
     def select(self):
-        embeddings = self.get_embeddings()
+        embeddings = self.encoder.get_embeddings(self.dataset, self.data_config)
 
         evol_scores, evol_ranking = self.get_scores()
 

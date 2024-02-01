@@ -12,7 +12,7 @@ class KMenasMedianDeita(DeitaScoreFaiss):
             np.random.seed(self.random_seed)
 
     def select(self):
-        embeddings = self.get_embeddings()
+        embeddings = self.encoder.get_embeddings(self.dataset, self.data_config)
         evol_scores, evol_ranking = self.get_scores()
 
         d = embeddings.shape[1]

@@ -8,7 +8,20 @@ class SeparatorStyle(Enum):
     SINGLE = auto()
     TWO = auto()
 
-
+def concat_messages(messages, concat_method):
+            if concat_method == "tulu":
+                return concat_tulu_messages(messages)
+            elif concat_method == "tulu_v1":
+                template = get_default_conv_template(concat_method)
+                for message in messages:
+                    role, content = message["role"], message["content"]
+                    template.append_message(role, content)
+                return template.get_prompt()
+            elif concat_method == "tulu_user_only":
+                return concat_tulu_messages_only_user(messages)
+            else:
+                raise ValueError(f"Invalid concat method: {concat_method}")
+            
 def concat_tulu_messages(messages):
     message_text = ""
     for message in messages:

@@ -9,14 +9,14 @@ class SemanticBasedEncoder(Encoder):
     def __init__(self, config):
         super().__init__(config)
         if self.config['is_sentence_transformer']:
-            self.model = SentenceTransformer(self.config['model_name'])
+            self.model = SentenceTransformer(self.config['model_name'], cache_folder='/mnt/data/.cache')
             self.tokenizer = self.model.tokenizer
-            self.max_seq_length = self.model.max_seq_length
+            self.max_seq_length = self.model.max_seq_length if self.config.get('max_seq_length', None) is None else self.config['max_seq_length']
             self.hidden_size = self.model.get_sentence_embedding_dimension()
         else:
             self.model = AutoModel.from_pretrained(self.config['model_name']).to('cuda')
             self.tokenizer = AutoTokenizer.from_pretrained(self.config['model_name'])
-            self.max_seq_length = self.model.config.max_position_embeddings - 2
+            self.max_seq_length = self.model.config.max_position_embeddings - 2 if self.config.get('max_seq_length', None) is None else self.config['max_seq_length']
             self.hidden_size = self.model.config.hidden_size
         if 'max_length_threshold' in self.config:
             self.max_seq_length -= self.config['max_length_threshold']
@@ -45,6 +45,18 @@ class SemanticBasedEncoder(Encoder):
         for sentence in sentences:
             prepended_sentences.append(f'query: {sentence}')
         return prepended_sentences
+    def _preprocess_e5_mistral(self, sentences):
+        '''
+        Preprocess the sentences for the E5 model
+        "query: " take two tokens, so the max length is 510
+        '''
+        def get_detailed_instruct(task_description: str, query: str) -> str:
+            return f'Instruct: {task_description}\nQuery: {query}'
+        # prepend the tokens for querying
+        prepended_sentences = []
+        for sentence in sentences:
+            prepended_sentences.append(get_detailed_instruct('Identify the topic or theme of the given text.', sentence))
+        return prepended_sentences
     
     def encode(self, sentences, batch_size=1024, device='cuda', show_progress_bar=True, aggregate_method='mean'):
         assert aggregate_method in ['mean', 'sum', 'max'], 'aggregate_method must be one of mean, sum, max'
@@ -71,7 +83,9 @@ class SemanticBasedEncoder(Encoder):
         chunked_indices = [item for sublist in chunked_indices for item in sublist]
         
         # E5 model requires prepending the tokens for querying
-        if 'e5' in self.config['model_name']:
+        if 'e5-mistral' in self.config['model_name']:
+            chunked_instances = self._preprocess_e5_mistral(chunked_instances)
+        elif 'e5' in self.config['model_name']:
             chunked_instances = self._preprocess_e5(chunked_instances)
 
         chunked_embeddings = np.zeros((len(chunked_instances), self.hidden_size))
@@ -99,7 +113,6 @@ class SemanticBasedEncoder(Encoder):
         # print the device where the embeddings are stored
         # print("Embeddings are stored in: ", embeddings.device)
         return embeddings
-        
 
 # sanity check
 # if __name__ == '__main__':

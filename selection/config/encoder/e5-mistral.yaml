@@ -1,0 +1,7 @@
+batch_size: 1
+model_name: 'intfloat/e5-mistral-7b-instruct'
+is_sentence_transformer: True
+max_length_threshold: 4
+max_seq_length: 4070
+is_cached: True
+concat_method: 'tulu_user_only'

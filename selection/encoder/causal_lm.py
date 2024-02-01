@@ -4,6 +4,7 @@ import torch
 from tqdm import tqdm, trange
 import numpy as np
 from torch import Tensor
+from selection.encoder.utils import concat_messages
 
 def last_token_pool(last_hidden_states: Tensor,
                 attention_mask: Tensor) -> Tensor:
@@ -36,7 +37,8 @@ class ModelBasedEncoder(Encoder):
     def encode(self, sentences, batch_size=None, device='cuda', show_progress_bar=True, aggregate_method='mean'):
         if ('batch_size' in self.config) and (batch_size is None):
             batch_size = self.config['batch_size']
-        self.model = self.model.to(device)
+        if not self.config['is_8bit']:
+            self.model = self.model.to(device)
         embeddings = torch.zeros((len(sentences), self.hidden_size))
         for i in trange(0, len(sentences), batch_size):
             batch_instances = sentences[i:i+batch_size]
@@ -47,6 +49,26 @@ class ModelBasedEncoder(Encoder):
             del batch_last_hidden_states
         return embeddings.numpy()
 
+    # def get_embeddings(self, dataset, data_config):
+    #     # First check if cache is available
+    #     is_encoder_cached = self.encoder_config.get('is_cached', False)
+    #     concat_method = self.encoder_config.get('concat_method', 'tulu')
+    #     if is_encoder_cached:
+    #         encoder_name = self.encoder_config['model_name'].split('/')[-1]
+    #         cache_path = '/'.join(data_config.name.split('/')[:-1] + [encoder_name + 'embeddings.npy'])
+    #         try:
+    #             embeddings = np.load(cache_path)
+    #             return embeddings
+    #         except:
+    #             pass
+    #     # If not, extract the embeddings
+    #     sentences = dataset[data_config.data_column]
+    #     sentences = [concat_messages(message, concat_method) for message in tqdm(sentences, desc="Concatenating messages")]
+    #     embeddings = self.encode(sentences, batch_size=self.encoder_config.batch_size, show_progress_bar=True)
+    #     # Cache the embeddings
+    #     if is_encoder_cached:
+    #         np.save(cache_path, embeddings)
+    #     return embeddings
 
 # # sanity check
 # if __name__ == '__main__':

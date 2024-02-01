@@ -2,4 +2,4 @@ defaults:
 - _self_
 - data: sharegpt
 - coreset: random
-- encoder: all-MiniLM-L6-v2
+- encoder: miniLM

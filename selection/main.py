@@ -72,3 +72,6 @@ if __name__ == "__main__":
     main()
 # nohup python main.py > logs/main.log 2>&1 &
 # export LD_LIBRARY_PATH=/mnt/data/selection/lib:$LD_LIBRARY_PATH
+
+# CUDA_VISIBLE_DEVICES=0 nohup python selection/main.py --multirun data=wizardlm,sharegpt coreset=KMenasRandomDeita encoder=llama > logs/llama.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=1 nohup python selection/main.py --multirun data=wizardlm,sharegpt coreset=KMenasRandomDeita encoder=multilingual-e5,miniLM > logs/multilingual-e5.log 2>&1 &

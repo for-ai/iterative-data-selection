@@ -12,7 +12,7 @@ class KCenterMedian(DeitaScoreFaiss):
             np.random.seed(self.random_seed)
 
     def select(self):
-        embeddings = self.get_embeddings()
+        embeddings = self.encoder.get_embeddings(self.dataset, self.data_config)
 
         d = embeddings.shape[1]
         index = faiss.IndexFlatL2(d)
