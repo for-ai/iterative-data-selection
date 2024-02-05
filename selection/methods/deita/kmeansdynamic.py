@@ -25,7 +25,7 @@ class KMeansDynamic(DeitaScoreFaiss):
         index = faiss.IndexFlatL2(d)
         index.add(embeddings)
 
-        kmeans = faiss.Kmeans(d, self.K, niter=75, verbose=True, nredo=5, gpu=True)
+        kmeans = faiss.Kmeans(d, self.K, niter=300, verbose=True, nredo=5, gpu=True)
         kmeans.train(embeddings)
 
         # get which centroid each embedding belongs to
@@ -41,7 +41,7 @@ class KMeansDynamic(DeitaScoreFaiss):
         trial = np.ceil(self.coreset_size / (self.K * self.initial_seed)).astype(int)
         final_indices = np.array([], dtype=np.int64)
         for i in range(trial):
-            select_sizes = np.floor(clusters2weights * (self.initial_seed * self.K)).astype(int)
+            select_sizes = np.ceil(clusters2weights * (self.initial_seed * self.K)).astype(int)
 
             # print('Select sizes:', select_sizes)
             for j in range(self.K):
@@ -66,3 +66,5 @@ class KMeansDynamic(DeitaScoreFaiss):
 
         print(final_indices.shape)
         return {'indices': final_indices}
+
+# CUDA_VISIBLE_DEVICES=1 python3 selection/main.py coreset=KMeansDynamic data=cohere encoder=llama
