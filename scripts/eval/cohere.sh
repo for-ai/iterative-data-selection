@@ -54,25 +54,29 @@ export OPENAI_API_KEY=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
 #     --use_vllm
 
 # ToxiGen
-python3 -m eval.toxigen.run_eval \
-    --data_dir data/eval/toxigen/ \
-    --save_dir results/toxigen/${MODEL_NAME} \
-    --model_name_or_path $CHECKPOINT_PATH \
-    --use_vllm \
-    --use_chat_format \
-    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
+# python3 -m eval.toxigen.run_eval \
+#     --data_dir data/eval/toxigen/ \
+#     --save_dir results/toxigen/${MODEL_NAME} \
+#     --model_name_or_path $CHECKPOINT_PATH \
+#     --use_vllm \
+#     --classifier_batch_size 16 \
+#     --load_in_8bit \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
 
-# TyDiQA
-python3 -m eval.tydiqa.run_eval \
-    --data_dir data/eval/tydiqa/ \
-    --n_shot 1 \
-    --max_num_examples_per_lang 100 \
-    --max_context_length 512 \
-    --save_dir results/tydiqa/${MODEL_NAME} \
-    --model $CHECKPOINT_PATH \
-    --tokenizer $CHECKPOINT_PATH \
-    --eval_batch_size 20 \
-    --load_in_8bit
+# # TyDiQA
+# python3 -m eval.tydiqa.run_eval \
+#     --data_dir data/eval/tydiqa/ \
+#     --n_shot 1 \
+#     --max_num_examples_per_lang 100 \
+#     --max_context_length 512 \
+#     --save_dir results/tydiqa/${MODEL_NAME} \
+#     --model $CHECKPOINT_PATH \
+#     --tokenizer $CHECKPOINT_PATH \
+#     --eval_batch_size 4 \
+#     --load_in_8bit \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
     
 # python3 -m eval.mmlu.run_eval \
 #     --ntrain 0 \
@@ -85,17 +89,17 @@ python3 -m eval.tydiqa.run_eval \
 #     --use_chat_format \
 #     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
 # 
-# # # MMLU 5 shot
-# python3 -m eval.mmlu.run_eval \
-#     --ntrain 5 \
-#     --data_dir data/eval/mmlu \
-#     --save_dir results/mmlu/${MODEL_NAME}-5shot \
-#     --model_name_or_path $CHECKPOINT_PATH \
-#     --tokenizer_name_or_path $CHECKPOINT_PATH \
-#     --eval_batch_size 4 \
-#     --load_in_8bit \
-#     --use_chat_format \
-#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
+# MMLU 5 shot
+python3 -m eval.mmlu.run_eval \
+    --ntrain 5 \
+    --data_dir data/eval/mmlu \
+    --save_dir results/mmlu/${MODEL_NAME}-5shot \
+    --model_name_or_path $CHECKPOINT_PATH \
+    --tokenizer_name_or_path $CHECKPOINT_PATH \
+    --eval_batch_size 4 \
+    --load_in_8bit \
+    --use_chat_format \
+    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
 
 # ## Alpaca-Eval
 # python3 -m eval.alpaca_farm.run_eval \

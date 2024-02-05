@@ -38,7 +38,7 @@ accelerate launch \
     --checkpointing_steps epoch \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
-    --learning_rate 1e-4 \
+    --learning_rate 2e-5 \
     --lr_scheduler_type linear \
     --warmup_ratio 0.03 \
     --weight_decay 0.00 \
@@ -46,7 +46,7 @@ accelerate launch \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 5 \
+    --num_train_epochs 6 \
     --do_eval \
     --eval_file data/processed/ultrachat/test_1000.jsonl \
     --eval_steps 100 \
@@ -68,4 +68,4 @@ accelerate launch \
 
 # nohup bash scripts/finetune_llama_with_accelerate.sh KCenterGreedyDeita_0.05 > logs/finetune_with_accelerate_Llama-2-7b-hf-sharegpt-KCenterGreedyDeita_0.05_lora.log 2>&1 &
 
-# nohup bash scripts/fine_tune_llama_with_accelerate.sh KCenterGreedyDeita_0.05_Llama-2-7b-hf > logs/finetune_with_accelerate_Llama-2-7b-hf-KCenterGreedyDeita_0.05_lora.log 2>&1 &
+# nohup bash scripts/finetune_llama_with_accelerate.sh KMeansDynamic_0.05_Llama-2-7b-hf > logs/finetune_with_accelerate_Llama-2-7b-hf-cohere-lora-KMeansDynamic_0.05.log 2>&1 &

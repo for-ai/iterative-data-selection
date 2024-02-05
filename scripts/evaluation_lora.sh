@@ -14,7 +14,7 @@ EPOCH_NAME=""
 
 MODEL_NAME=Llama-2-7b-hf-sharegpt-KCenterMedian-0.05-lora-epoch_4
 
-for peft in simonycl/llama-2-7b-hf-cohere-KCenterGreedyDeita-0.05-Llama-2-7b-hf
+for peft in simonycl/llama-2-7b-hf-cohere-KMeansRandom-1024-0.05-Llama-2-7b-hf
 do
     cd /mnt/data/data-selection/
     PEFT_PATH=$peft
