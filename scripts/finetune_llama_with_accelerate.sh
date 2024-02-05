@@ -7,7 +7,7 @@ export CUDA_VISIBLE_DEVICES=0,1
 
 MODEL_SIZE=7B
 NUM_GPUS=2
-BATCH_SIZE_PER_GPU=2
+BATCH_SIZE_PER_GPU=1
 EVAL_BATCH_SIZE_PER_GPU=16
 TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
@@ -46,7 +46,7 @@ accelerate launch \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 10 \
+    --num_train_epochs 5 \
     --do_eval \
     --eval_file data/processed/ultrachat/test_1000.jsonl \
     --eval_steps 100 \
@@ -67,3 +67,5 @@ accelerate launch \
 # nohup bash scripts/finetune_llama_with_accelerate.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-sharegpt_lora_1.log 2>&1 &
 
 # nohup bash scripts/finetune_llama_with_accelerate.sh KCenterGreedyDeita_0.05 > logs/finetune_with_accelerate_Llama-2-7b-hf-sharegpt-KCenterGreedyDeita_0.05_lora.log 2>&1 &
+
+# nohup bash scripts/fine_tune_llama_with_accelerate.sh KCenterGreedyDeita_0.05_Llama-2-7b-hf > logs/finetune_with_accelerate_Llama-2-7b-hf-KCenterGreedyDeita_0.05_lora.log 2>&1 &
