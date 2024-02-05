@@ -12,9 +12,10 @@ EVAL_BATCH_SIZE_PER_GPU=16
 TOTAL_BATCH_SIZE=64
 MODEL_NAME_OR_PATH=meta-llama/Llama-2-7b-hf
 
-TRAIN_FILE=data/processed/sharegpt/sharegpt_data.jsonl
+DATASET=cohere
+TRAIN_FILE=data/processed/${DATASET}/${DATASET}_data.jsonl
 
-MODEL_NAME=Llama-2-7b-hf-sharegpt-lora-${INDICES_NAME}
+MODEL_NAME=Llama-2-7b-hf-${DATASET}-lora-${INDICES_NAME}
 
 GRADIENT_ACC_STEPS=$(($TOTAL_BATCH_SIZE/$NUM_GPUS/$BATCH_SIZE_PER_GPU))
 echo "Training llama model ${MODEL_SIZE} using $NUM_GPUS GPUs, $BATCH_SIZE_PER_GPU batch size per GPU, $GRADIENT_ACC_STEPS gradient accumulation steps"
@@ -37,7 +38,7 @@ accelerate launch \
     --checkpointing_steps epoch \
     --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
     --gradient_accumulation_steps $GRADIENT_ACC_STEPS \
-    --learning_rate 2e-4 \
+    --learning_rate 1e-4 \
     --lr_scheduler_type linear \
     --warmup_ratio 0.03 \
     --weight_decay 0.00 \
@@ -48,10 +49,10 @@ accelerate launch \
     --num_train_epochs 10 \
     --do_eval \
     --eval_file data/processed/ultrachat/test_1000.jsonl \
-    --eval_steps 40 \
+    --eval_steps 100 \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
-    --selection_indices selection/indices/sharegpt_${INDICES}.pkl \
-    --output_dir output/data_selection_${MODEL_NAME}_lora \
+    --selection_indices selection/indices/${DATASET}_${INDICES}.pkl \
+    --output_dir output/data_selection_${DATASET}_${MODEL_NAME}_lora \
     --with_tracking \
     --logging_steps 10 \
     --report_to wandb

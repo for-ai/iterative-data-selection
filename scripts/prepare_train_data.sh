@@ -8,6 +8,18 @@ then
     exit 1
 fi
 
+# Slimorca dataset
+# echo "Downloading the Slimorca dataset..."
+# wget -P data/raw_train/slimorca/ https://huggingface.co/datasets/Open-Orca/SlimOrca/resolve/main/oo-labeled_correct.gpt4.sharegpt.jsonl
+
+# MetaMathQA
+# echo "Downloading the MetaMathQA dataset..."
+# wget -P data/raw_train/metamathqa/ https://huggingface.co/datasets/meta-math/MetaMathQA/resolve/main/MetaMathQA-395K.json
+
+# # Magicoder
+# echo "Downloading the Magicoder dataset..."
+# wget -P data/raw_train/magicoder/ https://huggingface.co/datasets/ise-uiuc/Magicoder-OSS-Instruct-75K/resolve/main/data-oss_instruct-decontaminated.jsonl
+
 # echo "Downloading Super-NaturalInstructions dataset..."
 # wget -P data/raw_train/super_ni/ https://github.com/allenai/natural-instructions/archive/refs/heads/master.zip
 # unzip data/raw_train/super_ni/master.zip -d data/raw_train/super_ni/ && rm data/raw_train/super_ni/master.zip
@@ -80,9 +92,9 @@ fi
 #     --max-length 4096
 
 
-echo "Downloading LIMA dataset..."
-wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://huggingface.co/datasets/GAIR/lima/raw/main/train.jsonl
-wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://huggingface.co/datasets/GAIR/lima/raw/main/test.jsonl
+# echo "Downloading LIMA dataset..."
+# wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://huggingface.co/datasets/GAIR/lima/raw/main/train.jsonl
+# wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://huggingface.co/datasets/GAIR/lima/raw/main/test.jsonl
 
 
 # echo "Downloading WizardLM dataset..."
@@ -103,4 +115,4 @@ wget --header="Authorization: Bearer $HF_TOKEN" -P data/raw_train/lima/ https://
 
 
 # echo "Processing datasets..."
-python3 data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset lima
+python3 data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset cohere

@@ -12,9 +12,9 @@ TRAIN_FILE=data/processed/sharegpt/sharegpt_data.jsonl
 STEP_NAME=""
 EPOCH_NAME=""
 
-MODEL_NAME=Llama-2-7b-hf-sharegpt-KMenasRandomDeita-512-0.05-lora-epoch_4
+MODEL_NAME=Llama-2-7b-hf-sharegpt-KCenterMedian-0.05-lora-epoch_4
 
-for peft in simonycl/data-selection-Llama-2-7b-sharegpt-KMenasRandomDeita-512-0.05-lora-epoch_4
+for peft in simonycl/data-selection-Llama-2-7b-sharegpt-KCenterMedian-0.05-lora-epoch_4
 do
     PEFT_PATH=$peft
     # extract the model name from split string by delimiter '-' and get the third last element

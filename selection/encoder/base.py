@@ -19,6 +19,7 @@ class Encoder(abc.ABC):
         if is_encoder_cached:
             encoder_name = self.config['model_name'].split('/')[-1]
             cache_path = '/'.join(data_config.name.split('/')[:-1] + [encoder_name + '-' + concat_method + '-embeddings.npy'])
+            # cache_path = '/mnt/data/data-selection/data/processed/sharegpt/Llama-2-7b-hf-embeddings.npy'
             try:
                 embeddings = np.load(cache_path)
                 return embeddings

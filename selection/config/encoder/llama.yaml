@@ -4,3 +4,4 @@ is_8bit: True
 is_cached: True
 concat_method: 'tulu_user_only'
 batch_size: 8
+max_seq_length: 4096

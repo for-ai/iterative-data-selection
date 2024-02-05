@@ -54,7 +54,7 @@ def main(cfg: DictConfig) -> None:
     subset_indices = get_subset_indices(dataset, cfg.data, cfg.coreset, encoder_config)
     print(f"Selecting {method_name} subset of size {fraction}...")
 
-    output_name = f'indices/{dataset_name}_{method_name}_{str(fraction)}.pkl'
+    output_name = f'selection/indices/{dataset_name}_{method_name}_{str(fraction)}.pkl'
     if encoder_config is not None:
         encoder_name = encoder_config.model_name
         if '/' in encoder_name:
@@ -65,8 +65,8 @@ def main(cfg: DictConfig) -> None:
         output_name = output_name.replace('.pkl', f'_{str(K)}.pkl')
 
     print(f"Saving indices to {output_name}...")
-    # with open(output_name, 'wb') as f:
-    #     pickle.dump(subset_indices, f)
+    with open(output_name, 'wb') as f:
+        pickle.dump(subset_indices, f)
 
 if __name__ == "__main__":
     main()
@@ -75,3 +75,4 @@ if __name__ == "__main__":
 
 # CUDA_VISIBLE_DEVICES=0 nohup python selection/main.py --multirun data=wizardlm,sharegpt coreset=KMenasRandomDeita encoder=llama > logs/llama.log 2>&1 &
 # CUDA_VISIBLE_DEVICES=1 nohup python selection/main.py --multirun data=wizardlm,sharegpt coreset=KMenasRandomDeita encoder=multilingual-e5,miniLM > logs/multilingual-e5.log 2>&1 &
+# nohup python selection/main.py data=cohere coreset=Deita encoder=llama > logs/llama.log 2>&1 &
