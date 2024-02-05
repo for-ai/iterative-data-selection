@@ -21,9 +21,9 @@ export HF_HOME=/mnt/data/.cache/huggingface
 export HF_TRANSFORMERS_CACHE=/mnt/data/.cache/transformers
 export HF_DATASETS_CACHE=/mnt/data/.cache/datasets
 
-export HF_HOME=/mnt/ceph_rbd/.cache/huggingface
-export HF_TRANSFORMERS_CACHE=/mnt/ceph_rbd/.cache/transformers
-export HF_DATASETS_CACHE=/mnt/ceph_rbd/.cache/datasets
+# export HF_HOME=/mnt/ceph_rbd/.cache/huggingface
+# export HF_TRANSFORMERS_CACHE=/mnt/ceph_rbd/.cache/transformers
+# export HF_DATASETS_CACHE=/mnt/ceph_rbd/.cache/datasets
 
 git config --global credential.helper store
 
