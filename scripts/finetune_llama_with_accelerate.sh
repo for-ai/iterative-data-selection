@@ -66,6 +66,6 @@ accelerate launch \
 
 # nohup bash scripts/finetune_llama_with_accelerate.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-sharegpt_lora_1.log 2>&1 &
 
-# nohup bash scripts/finetune_llama_with_accelerate.sh KCenterGreedyDeita_0.05 > logs/finetune_with_accelerate_Llama-2-7b-hf-sharegpt-KCenterGreedyDeita_0.05_lora.log 2>&1 &
+# nohup bash scripts/finetune_llama_with_accelerate.sh KCenterGreedyDeita_0.05_Llama-2-7b-hf > logs/finetune_with_accelerate_Llama-2-7b-hf-cohere-KCenterGreedyDeita_0.05_lora.log 2>&1 &
 
 # nohup bash scripts/finetune_llama_with_accelerate.sh KMeansDynamic_0.05_Llama-2-7b-hf > logs/finetune_with_accelerate_Llama-2-7b-hf-cohere-lora-KMeansDynamic_0.05.log 2>&1 &
