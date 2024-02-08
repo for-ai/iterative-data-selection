@@ -1,6 +1,8 @@
 """
 Select data subset from a HF dataset using a coreset selection method.
 """
+import os
+os.environ['LD_LIBRARY_PATH'] = '/mnt/data/selection/lib:' + os.environ['LD_LIBRARY_PATH']
 
 from datasets import load_dataset
 import methods
@@ -64,6 +66,9 @@ def main(cfg: DictConfig) -> None:
         K = cfg.coreset.K
         output_name = output_name.replace('.pkl', f'_{str(K)}.pkl')
 
+    # TODO remove this remember
+    output_name = output_name.replace('.pkl', f'_norm.pkl')
+
     print(f"Saving indices to {output_name}...")
     with open(output_name, 'wb') as f:
         pickle.dump(subset_indices, f)
@@ -75,4 +80,4 @@ if __name__ == "__main__":
 
 # CUDA_VISIBLE_DEVICES=0 nohup python selection/main.py --multirun data=wizardlm,sharegpt coreset=KMenasRandomDeita encoder=llama > logs/llama.log 2>&1 &
 # CUDA_VISIBLE_DEVICES=1 nohup python selection/main.py --multirun data=wizardlm,sharegpt coreset=KMenasRandomDeita encoder=multilingual-e5,miniLM > logs/multilingual-e5.log 2>&1 &
-# nohup python selection/main.py data=cohere coreset=Deita encoder=llama > logs/llama.log 2>&1 &
+# python selection/main.py data=cohere coreset=KMeansDynamic encoder=llama

@@ -19,7 +19,7 @@ class KMenasRandomDeita(DeitaScoreFaiss):
         index = faiss.IndexFlatL2(d)
         index.add(embeddings)
 
-        kmeans = faiss.Kmeans(d, self.K, niter=75, verbose=True, nredo=5, gpu=True)
+        kmeans = faiss.Kmeans(d, self.K, niter=300, verbose=True, nredo=5, gpu=True)
         kmeans.train(embeddings)
 
         # get which centroid each embedding belongs to
