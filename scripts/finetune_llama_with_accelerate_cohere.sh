@@ -1,5 +1,5 @@
 # for INDICES in KMenasRandomDeita_0.05_Llama-2-7b-hf_64_norm KMeansDynamic_0.05_Llama-2-7b-hf_norm
-for INDICES in KCenterGreedyDeita_0.05_Llama-2-7b-hf_norm KMenasRandomDeita_0.05_Llama-2-7b-hf_1024_norm
+for INDICES in KMeansRandom_0.05_Llama-2-7b-hf_norm
 do
     # replace all "_" by "-" in INDICES to INDICES_NAME
     INDICES_NAME=${INDICES//_/-}
