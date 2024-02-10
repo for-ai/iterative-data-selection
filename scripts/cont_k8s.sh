@@ -1,17 +1,4 @@
-pip3 install accelerate deepspeed peft bitsandbytes tokenizers evaluate
 
-pip install packaging
-pip install ninja
-
-pip install flash-attn --no-build-isolation
-
-pip install wandb
-
-pip install vllm
-
-pip install -U flash-attn
-
-pip install -U torch torchvision torchaudio
 export HF_HOME=/mnt/ceph_rbd/.cache/huggingface
 export HF_TRANSFORMERS_CACHE=/mnt/ceph_rbd/.cache/transformers
 export HF_DATASETS_CACHE=/mnt/ceph_rbd/.cache/datasets
