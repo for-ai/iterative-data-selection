@@ -7,7 +7,7 @@ for model in /mnt/ceph_rbd/data-selection/output/data_selection_llama-2-7b-hf-co
 do
     model_name=$(echo $model | tr '/' '-' | cut -d '-' -f 2-) # output: llama-2-7b-hf-cohere-Random-0.05
     # Evaluating llama 7B model using temperature 0.1 to get the pass@1 score
-    # python -m eval.codex_humaneval.run_eval \
+    # python3 -m eval.codex_humaneval.run_eval \
     #     --data_file data/eval/codex_humaneval/HumanEval.jsonl.gz \
     #     --eval_pass_at_ks 1 5 10 20 \
     #     --unbiased_sampling_size_n 20 \
@@ -19,7 +19,7 @@ do
 
 
     # Evaluating llama 7B model using temperature 0.8 to get the pass@10 score
-    python -m eval.codex_humaneval.run_eval \
+    python3 -m eval.codex_humaneval.run_eval \
         --data_file data/eval/codex_humaneval/HumanEval.jsonl.gz \
         --eval_pass_at_ks 10 \
         --unbiased_sampling_size_n 20 \
