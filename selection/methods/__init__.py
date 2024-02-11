@@ -7,3 +7,4 @@ from .kmeansrandom import *
 from .uniform_upsample import *
 from .deita import *
 from .kcentermedian import *
+from .kmeansiter import *

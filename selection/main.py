@@ -30,7 +30,7 @@ def get_dataset(data_config: DictConfig):
 
 def get_subset_indices(dataset, data_config, method_config, encoder_config):
     method_name = method_config.name
-    if method_name == "KMenasRandomDeita":
+    if method_name in ["KMeansRandom", "KMeansDynamic", "KMeansRandomDeita"]:
         K = method_config.K
         selector = methods.__dict__[method_name](dataset, data_config=data_config, method_config=method_config, encoder_config=encoder_config, K=K)
     else:
@@ -65,9 +65,10 @@ def main(cfg: DictConfig) -> None:
     if method_name == "KMenasRandomDeita":
         K = cfg.coreset.K
         output_name = output_name.replace('.pkl', f'_{str(K)}.pkl')
-
-    # TODO remove this remember
-    output_name = output_name.replace('.pkl', f'_norm.pkl')
+    if method_name == "KMeansIter":
+        rounds = cfg.coreset.rounds
+        iter = subset_indices['iter']
+        output_name = output_name.replace('.pkl', f'_round_{str(rounds)}_iter_{str(iter)}.pkl')
 
     print(f"Saving indices to {output_name}...")
     with open(output_name, 'wb') as f:

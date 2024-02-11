@@ -1,5 +1,5 @@
 defaults:
 - _self_
-- data: sharegpt
+- data: cohere
 - coreset: random
-- encoder: miniLM
+- encoder: llama
