@@ -11,14 +11,15 @@ DATASET_FILE=simonycl/p3_0.5_dataset
 TRAIN_FILE=data/processed/sharegpt/sharegpt_data.jsonl
 STEP_NAME=""
 EPOCH_NAME=""
+MODEL_NAME_OR_PATH=simonycl/llama-2-7b-hf-sparseIT-multi-task-epoch-5
 
-MODEL_NAME=Llama-2-7b-hf-sharegpt-KCenterGreedy-005-full-ft
+MODEL_NAME=sparseIT-multi-task
 
 cd /mnt/data/lm-evaluation-harness
-bash eval_model.sh /mnt/data/EasyLM/model/Llama-2-7b-hf-sharegpt-KCenterGreedy-005-full-ft data_selection_$MODEL_NAME > /mnt/data/EasyLM/eval_results/data_selection_$MODEL_NAME.log
+bash eval_model.sh $MODEL_NAME_OR_PATH data_selection_$MODEL_NAME > /mnt/data/EasyLM/eval_results/data_selection_$MODEL_NAME.log
 
 cd /mnt/data/data-selection/
-bash scripts/eval/cohere.sh /mnt/data/EasyLM/model/Llama-2-7b-hf-sharegpt-KCenterGreedy-005-full-ft data_selection_$MODEL_NAME > /mnt/data/EasyLM/eval_results/data_selection_$MODEL_NAME-mmlu.log
+bash scripts/eval/cohere.sh $MODEL_NAME_OR_PATH data_selection_$MODEL_NAME > /mnt/data/EasyLM/eval_results/data_selection_$MODEL_NAME-mmlu.log
 
 # nohup bash scripts/evaluation_lora.sh > ./logs/evaluation_lora_Llama-2-7b-hf-sharegpt-KMenasRandomDeita-64-005-lora-epoch_4.log 2>&1 &
 
