@@ -33,7 +33,7 @@ from tqdm import trange
 # indices_path = '/mnt/data/data-selection/selection/indices/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_4_iter_0.pkl'
 
 is_vllm = False
-BATCH_SIZE = 4
+BATCH_SIZE = 2
 
 # filter if more than one round of conversation
 
@@ -47,6 +47,7 @@ def parse_arguments():
     parser.add_argument('--dataset', type=str, default='data/processed/cohere/cohere_data.jsonl')
     parser.add_argument('--indices', type=str, default='selection/indices/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_4_iter_0.pkl')
     parser.add_argument('--portion', type=float, default=1.0)
+    parser.add_argument('--num_return_sequences', type=int, default=1)
     return parser.parse_args()
 
 def encode_messages_input_output(messages):
@@ -69,7 +70,7 @@ def encode_messages_input_output(messages):
         'output': output
     }
 
-def generate_with_peft(tokenizer, model, input_outputs):
+def generate_with_peft(tokenizer, model, input_outputs, num_return_sequences=1):
     # input_output is a dict with keys 'input' and 'output'
     inputs = [input_output['input'] for input_output in input_outputs]
     # input = input_output['input']
@@ -77,14 +78,20 @@ def generate_with_peft(tokenizer, model, input_outputs):
         inputs, 
         return_tensors="pt", 
         padding="longest", 
-        truncation=False, 
-        ).to(model.device)
+        truncation=True, 
+        max_length=2048,
+        ).to(model.device) # (batch_size, max_length)
     
     with torch.no_grad():
-        output = model.generate(**tokenized_input, max_new_tokens=512, num_return_sequences=1, use_cache=True, pad_token_id=tokenizer.eos_token_id)
+        if num_return_sequences == 1:
+            output = model.generate(**tokenized_input, max_new_tokens=512, num_return_sequences=num_return_sequences, use_cache=True, pad_token_id=tokenizer.eos_token_id)
+        else:
+            output = model.generate(**tokenized_input, max_new_tokens=512, num_return_sequences=num_return_sequences, use_cache=True, pad_token_id=tokenizer.eos_token_id, do_sample=True, top_k=50, top_p=0.95, temperature=0.7)
     
     decoded_output = tokenizer.batch_decode(output[:, tokenized_input['input_ids'].shape[1]:], skip_special_tokens=True)
     
+    if num_return_sequences > 1:
+        decoded_output = [[decoded_output[i*num_return_sequences + j] for j in range(num_return_sequences)] for i in range(len(input_outputs))]
     return [
         {
             'input': input_outputs[i]['input'],
@@ -189,9 +196,11 @@ def main():
 
         for i in trange(0, len(subset), BATCH_SIZE):
             batches = subset[i:i+BATCH_SIZE]
-            generated = generate_with_peft(tokenizer, peft_model, batches)
+            generated = generate_with_peft(tokenizer, peft_model, batches, num_return_sequences=args.num_return_sequences)
             generated_content.extend(generated)
 
+    accelerator.wait_for_everyone()
+    
     generated_content_gathered = gather_object(generated_content)
 
     if accelerator.is_main_process:
