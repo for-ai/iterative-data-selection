@@ -145,7 +145,7 @@ def main():
         rm_pipe = pipeline(
             "sentiment-analysis",
             model="weqweasdas/hh_rlhf_rm_open_llama_3b",
-            device="cuda",
+            device_map={"": accelerator.process_index}, # {"cuda:0": 0, "cuda:1": 1, "cuda:2": 2, "cuda:3": 3
             tokenizer=rm_tokenizer,
             model_kwargs={"torch_dtype": torch.bfloat16}
         )
@@ -157,21 +157,21 @@ def main():
         }
 
         outputs = []
-        with open(output_dir, "w") as f:
-            for line in f.readlines():
-                content = json.loads(line)
-                outputs.append(content)
-        with accelerator.split_between_processes(outputs) as outs:
+        generated_contents = load_dataset('json', data_files=output_dir, split='train')
+        generated_contents = generated_contents.to_list()
+
+        with accelerator.split_between_processes(generated_contents) as generated:
             rewards = []
-            for i in trange(len(outs)):
-                reward = generate_rewards(outs[i], rm_pipe, pipe_kwargs)
-                outs[i]['reward'] = reward
-            rewards.extend(outs)
+            for i in trange(len(generated)):
+                reward = generate_rewards(generated[i], rm_pipe, pipe_kwargs)
+                generated[i]['reward'] = reward
+            rewards.extend(generated)
 
         accelerator.wait_for_everyone()
         rewards_gathered = gather_object(rewards)
 
-        with open(output_dir, "w") as f:
+        reward_output_dir = output_dir.replace('.jsonl', '_rewards.jsonl')
+        with open(reward_output_dir, "w") as f:
             for i, content in enumerate(rewards_gathered):
                 f.write(json.dumps(content) + "\n")
         return
