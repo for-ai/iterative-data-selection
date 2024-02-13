@@ -693,7 +693,7 @@ def main():
             starting_epoch = int(training_difference.replace("epoch_", "")) + 1
             resume_step = None
             completed_steps = starting_epoch * num_update_steps_per_epoch
-        else:
+        elif "step" in training_difference:
             # need to multiply `gradient_accumulation_steps` to reflect real steps
             resume_step = (
                 int(training_difference.replace("step_", ""))

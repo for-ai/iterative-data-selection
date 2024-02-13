@@ -112,6 +112,8 @@ def encode_for_reward_model(generated):
     '''
     input, gold, generated = generated['input'], generated['human'], generated['generated']
     input = input.strip().replace('<|system|>\n', '').replace('<|user|>\n', '').replace('<|assistant|>', '')
+    if type(generated) != list:
+        generated = [generated]
     generated = [gold] + generated
     reward_messages = []
     for message in generated:
@@ -156,7 +158,6 @@ def main():
             "batch_size": 1
         }
 
-        outputs = []
         generated_contents = load_dataset('json', data_files=output_dir, split='train')
         generated_contents = generated_contents.to_list()
 

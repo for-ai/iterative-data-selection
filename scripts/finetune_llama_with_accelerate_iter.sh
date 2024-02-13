@@ -51,6 +51,7 @@ accelerate launch \
     --eval_file data/processed/ultrachat/test_1000.jsonl \
     --eval_steps 100 \
     --eval_batch_size $EVAL_BATCH_SIZE_PER_GPU \
+    --resume_from_checkpoint simonycl/llama-2-7b-hf-cohere-KMeansIter-0.1-Llama-2-7b-hf-round-4-iter-0 \
     --selection_indices selection/indices/${DATASET}_${INDICES}.pkl \
     --output_dir output/data_selection_${DATASET}_${MODEL_NAME}_lora \
     --with_tracking \
