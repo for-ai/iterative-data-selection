@@ -14,6 +14,10 @@ from accelerate.utils import InitProcessGroupKwargs
 
 import warnings
 warnings.filterwarnings("ignore")
+import pandas as pd
+import numpy as np
+from collections import Counter
+
 
 kwargs = InitProcessGroupKwargs(timeout=timedelta(seconds=36000))
 accelerator = Accelerator(kwargs_handlers=[kwargs])
@@ -133,6 +137,105 @@ def generate_rewards(generated, rm_pipe, pipe_kwargs):
     rewards = apply_rm(reward_messages, rm_pipe, pipe_kwargs)
     return rewards
 
+def rm_pipeline(output_dir):
+    rm_tokenizer = AutoTokenizer.from_pretrained("weqweasdas/hh_rlhf_rm_open_llama_3b")
+
+    rm_pipe = pipeline(
+        "sentiment-analysis",
+        model="weqweasdas/hh_rlhf_rm_open_llama_3b",
+        device_map={"": accelerator.process_index}, # {"cuda:0": 0, "cuda:1": 1, "cuda:2": 2, "cuda:3": 3
+        tokenizer=rm_tokenizer,
+        model_kwargs={"torch_dtype": torch.bfloat16}
+    )
+
+    pipe_kwargs = {
+        "return_all_scores": True,
+        "function_to_apply": "none",
+        "batch_size": 1
+    }
+
+    generated_contents = load_dataset('json', data_files=output_dir, split='train')
+    generated_contents = generated_contents.to_list()
+
+    with accelerator.split_between_processes(generated_contents) as generated:
+        rewards = []
+        for i in trange(len(generated)):
+            reward = generate_rewards(generated[i], rm_pipe, pipe_kwargs)
+            generated[i]['reward'] = reward
+        rewards.extend(generated)
+
+    accelerator.wait_for_everyone()
+    rewards_gathered = gather_object(rewards)
+
+    reward_output_dir = output_dir.replace('.jsonl', '_rewards.jsonl')
+    with open(reward_output_dir, "w") as f:
+        for i, content in enumerate(rewards_gathered):
+            f.write(json.dumps(content) + "\n")
+
+    return rewards_gathered
+
+def select_new_iter(rewards_gathered, dataset, indices_path):
+    '''
+    {
+        'indices': # the indices needed to be selected
+    'selected_indices': # the indices selected
+    'clusters' # each data belongs to which cluster
+    'K' # number of clusters
+    'round',
+    'iter'
+    'portion'
+    }
+    '''
+    with open(indices_path, 'rb') as f:
+        indices_detail = pkl.load(f)
+    indices = indices_detail['indices']
+    clusters = indices_detail['clusters']
+    K, round, iter, portion = indices_detail['K'], indices_detail['round'], indices_detail['iter'], indices_detail['portion']
+    selected_indices = indices_detail['selected_indices']
+
+    rewards_df = pd.DataFrame(rewards_gathered)
+    rewards_df[['human_reward', 'generated_reward']] = pd.DataFrame(rewards_df['reward'].tolist(), index=rewards_df.index)
+    rewards_df = rewards_df.drop(columns=['reward'])
+    rewards_df['reward_diff'] = rewards_df['human_reward'] - rewards_df['generated_reward']
+
+    dataset = dataset.add_column('cluster', clusters)
+    dataset = dataset.add_column('index', range(len(dataset)))
+    subset = dataset.select(indices)
+    subset_df = subset.to_pandas()
+    subset_df['cluster'] = clusters[indices]
+
+    merged_df = subset_df.merge(rewards_df, left_index=True, right_index=True)
+    merged_df = merged_df.groupby('cluster')['reward_diff'].mean().reset_index()
+    merged_df['exp_reward_diff'] = np.exp(merged_df['reward_diff'])
+    merged_df['exp_reward_diff'] = merged_df['exp_reward_diff'] / merged_df['exp_reward_diff'].sum()
+    
+    size = (len(dataset) * portion) / K / round
+    exp_reward_diff = merged_df['exp_reward_diff']
+    
+    select_new_iter = np.random.choice(K, size=int(size), p=exp_reward_diff, replace=True)
+    selected_clusters_size = Counter(select_new_iter)
+
+    remaining_dataset = dataset.select(set(range(len(dataset))) - set(selected_indices))
+    remaining_dataset_df = remaining_dataset.to_pandas()
+
+    new_indices = []
+    for i in range(K):
+        indices = remaining_dataset_df[remaining_dataset_df['cluster'] == i]['index']
+        size = min(selected_clusters_size[i], len(indices))
+        indices = np.random.choice(indices, size=size, replace=False)
+        new_indices.extend(indices)
+    new_indices = np.array(new_indices)
+    new_indices = np.concatenate([selected_indices, new_indices])
+
+    indices_detail['indices'] = new_indices
+    indices_detail['selected_indices'] = new_indices
+    indices_detail['iter'] += 1
+    indices_detail['portion'] = portion
+    new_indices_path = indices_path.replace(f'iter_{iter}', f'iter_{iter+1}')
+    with open(new_indices_path, 'wb') as f:
+        pkl.dump(indices_detail, f)
+    return new_indices_path
+
 def main():
     args = parse_arguments()
     model_path = args.model
@@ -142,39 +245,7 @@ def main():
     output_dir = args.output_dir
 
     if args.use_rm:
-        rm_tokenizer = AutoTokenizer.from_pretrained("weqweasdas/hh_rlhf_rm_open_llama_3b")
-
-        rm_pipe = pipeline(
-            "sentiment-analysis",
-            model="weqweasdas/hh_rlhf_rm_open_llama_3b",
-            device_map={"": accelerator.process_index}, # {"cuda:0": 0, "cuda:1": 1, "cuda:2": 2, "cuda:3": 3
-            tokenizer=rm_tokenizer,
-            model_kwargs={"torch_dtype": torch.bfloat16}
-        )
-
-        pipe_kwargs = {
-            "return_all_scores": True,
-            "function_to_apply": "none",
-            "batch_size": 1
-        }
-
-        generated_contents = load_dataset('json', data_files=output_dir, split='train')
-        generated_contents = generated_contents.to_list()
-
-        with accelerator.split_between_processes(generated_contents) as generated:
-            rewards = []
-            for i in trange(len(generated)):
-                reward = generate_rewards(generated[i], rm_pipe, pipe_kwargs)
-                generated[i]['reward'] = reward
-            rewards.extend(generated)
-
-        accelerator.wait_for_everyone()
-        rewards_gathered = gather_object(rewards)
-
-        reward_output_dir = output_dir.replace('.jsonl', '_rewards.jsonl')
-        with open(reward_output_dir, "w") as f:
-            for i, content in enumerate(rewards_gathered):
-                f.write(json.dumps(content) + "\n")
+        rewards_gathered = rm_pipeline(output_dir)
         return
     
     tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -226,10 +297,21 @@ def main():
     
     generated_content_gathered = gather_object(generated_content)
 
+    print(f"Saving generated content to {output_dir}")
     if accelerator.is_main_process:
         with open(output_dir, "w") as f:
             for content in generated_content_gathered:
                 f.write(json.dumps(content) + "\n")
+
+    accelerator.wait_for_everyone()
+
+    print(f"Finished generating rewards for {output_dir}")
+
+    print(f"Generating rewards for {output_dir}")
+    rewards_gathered = rm_pipeline(output_dir)
+
+    print(f"Selecting new indices for {output_dir}")
+    new_indices_path = select_new_iter(rewards_gathered, dataset, indices_path)
 
 if __name__ == "__main__":
     main()

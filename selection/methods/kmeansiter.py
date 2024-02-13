@@ -51,4 +51,12 @@ class KMeansIter(CoresetMethod):
             final_indices = np.concatenate((final_indices, indices_i))
 
         print(final_indices.shape)
-        return {'indices': final_indices, 'iter': self.iter}
+        return {
+            'indices': final_indices, 
+            'selected_indices': final_indices,
+            'clusters': indices,
+            'K': self.K,
+            'round': self.rounds,
+            'iter': self.iter,
+            'portion': self.fraction
+        }
