@@ -48,6 +48,7 @@ def parse_arguments():
     parser.add_argument('--indices', type=str, default='selection/indices/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_4_iter_0.pkl')
     parser.add_argument('--portion', type=float, default=1.0)
     parser.add_argument('--num_return_sequences', type=int, default=1)
+    parser.add_argument('--use_rm', action='store_true')
     return parser.parse_args()
 
 def encode_messages_input_output(messages):
@@ -138,6 +139,43 @@ def main():
     indices_path = args.indices
     output_dir = args.output_dir
 
+    if args.use_rm:
+        rm_tokenizer = AutoTokenizer.from_pretrained("weqweasdas/hh_rlhf_rm_open_llama_3b")
+
+        rm_pipe = pipeline(
+            "sentiment-analysis",
+            model="weqweasdas/hh_rlhf_rm_open_llama_3b",
+            device="cuda",
+            tokenizer=rm_tokenizer,
+            model_kwargs={"torch_dtype": torch.bfloat16}
+        )
+
+        pipe_kwargs = {
+            "return_all_scores": True,
+            "function_to_apply": "none",
+            "batch_size": 1
+        }
+
+        outputs = []
+        with open(output_dir, "w") as f:
+            for line in f.readlines():
+                content = json.loads(line)
+                outputs.append(content)
+        with accelerator.split_between_processes(outputs) as outs:
+            rewards = []
+            for i in trange(len(outs)):
+                reward = generate_rewards(outs[i], rm_pipe, pipe_kwargs)
+                outs[i]['reward'] = reward
+            rewards.extend(outs)
+
+        accelerator.wait_for_everyone()
+        rewards_gathered = gather_object(rewards)
+
+        with open(output_dir, "w") as f:
+            for i, content in enumerate(rewards_gathered):
+                f.write(json.dumps(content) + "\n")
+        return
+    
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
@@ -160,22 +198,6 @@ def main():
     from peft import PeftModel
     peft_model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False)
     # peft_model = peft_model.to(model.device)
-
-    # rm_tokenizer = AutoTokenizer.from_pretrained("weqweasdas/hh_rlhf_rm_open_llama_3b")
-
-    # rm_pipe = pipeline(
-    #     "sentiment-analysis",
-    #     model="weqweasdas/hh_rlhf_rm_open_llama_3b",
-    #     device="cuda",
-    #     tokenizer=rm_tokenizer,
-    #     model_kwargs={"torch_dtype": torch.bfloat16}
-    # )
-
-    # pipe_kwargs = {
-    #     "return_all_scores": True,
-    #     "function_to_apply": "none",
-    #     "batch_size": 1
-    # }
 
     dataset = load_dataset('json', data_files=dataset_path, split='train')
     with open(indices_path, 'rb') as f:
