@@ -16,7 +16,7 @@ MODEL_NAME=Llama-2-7b-hf-sharegpt-KCenterMedian-0.05-lora-epoch_4
 
 # for peft in simonycl/llama-2-7b-hf-cohere-KCenterGreedyDeita-0.05-Llama-2-7b-hf-2e-5-norm simonycl/llama-2-7b-hf-cohere-KMenasRandomDeita-0.05-Llama-2-7b-hf-2e-5-1024-norm
 # for peft in simonycl/llama-2-7b-hf-cohere-KMenasRandomDeita-0.05-Llama-2-7b-hf-2e-5-64-norm simonycl/llama-2-7b-hf-cohere-KMeansDynamic-0.05-Llama-2-7b-hf-2e-5-norm
-for peft in simonycl/llama-2-7b-hf-cohere-KMenasRandom-0.05-Llama-2-7b-hf-2e-5-1024-norm
+for peft in simonycl/llama-2-7b-hf-cohere-Random-0.1-Llama-2-7b-hf simonycl/llama-2-7b-hf-cohere-KMeansIter-0.1-Llama-2-7b-hf-round-4-iter-0 simonycl/llama-2-7b-hf-cohere-KMeansIter-0.1-Llama-2-7b-hf-round-4-iter-1
 do
     cd /mnt/ceph_rbd/data-selection/
     PEFT_PATH=$peft
