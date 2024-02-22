@@ -10,6 +10,18 @@ import os
 import time
 os.environ['OPENAI_API_KEY'] = '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'
 
+import tiktoken
+
+def truncate_text_tokens(text, encoding_name="cl100k_base", max_tokens=2048):
+    """Truncate a string to have `max_tokens` according to the given encoding."""
+    if text == '':
+        return " "
+    encoding = tiktoken.get_encoding(encoding_name)
+    tokens = encoding.encode(text,
+                             allowed_special={'<|endoftext|>'},
+                             )[:max_tokens]
+    return encoding.decode(tokens)
+
 class OpenAIEncoder(Encoder):
     def __init__(self, config):
         super().__init__(config)
@@ -26,10 +38,20 @@ class OpenAIEncoder(Encoder):
     
     def encode(self, sentences, batch_size=1024, device='cuda', show_progress_bar=True, aggregate_method='mean'):
 
+        sentences = [truncate_text_tokens(sentence) for sentence in tqdm(sentences)]
+        # check if there's any none or empty string
+        any_none = any([s is None for s in sentences])
+        any_empty = any([s == '' for s in sentences])
+        if any_none:
+            raise ValueError("Some sentences are None")
+        if any_empty:
+            raise ValueError("Some sentences are empty")
+        
         embeddings = np.zeros((len(sentences), self.hidden_size))
 
         for i in trange(0, len(sentences), batch_size):
             batch_instances = sentences[i:i+batch_size]
+
             response = self.embeddings_with_backoff(batch_instances, self.model_name)
 
             for j in range(min(batch_size, len(sentences) - i)):

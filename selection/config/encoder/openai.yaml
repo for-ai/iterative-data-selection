@@ -1,5 +1,5 @@
 model_name: 'text-embedding-3-small'
 is_openai: True
 is_cached: True
-concat_method: 'tulu'
-batch_size: 256
+concat_method: 'tulu_user_only'
+batch_size: 16

@@ -24,7 +24,7 @@ import os
 import pandas as pd
 import argparse
 from instruction_encode_template import encode_instruction_example, encode_few_shot_example
-
+from datasets import load_dataset
 
 def convert_super_ni_data(data_dir, output_dir, zero_shot_examples_per_task=60, few_shot_examples_per_task=20, n_few_shot=2):
     os.makedirs(output_dir, exist_ok=True)
@@ -310,7 +310,7 @@ def convert_gpt4_alpaca_data(data_dir, output_dir, load_en=True, load_zh=False, 
             }) + "\n")
 
 
-def convert_sharegpt_data(data_dir, output_dir, data_file="sharegpt_html_cleaned_and_split_2048.json", num_examples=None):
+def convert_sharegpt_data(data_dir, output_dir, data_file="sharegpt_html_cleaned_and_split_4096.json", num_examples=None):
     os.makedirs(output_dir, exist_ok=True)
     examples = []
     with open(os.path.join(data_dir, data_file), "r") as fin:
@@ -554,10 +554,10 @@ def convert_open_orca_data(data_dir, output_dir, num_gpt4_examples=30000, num_gp
     os.makedirs(output_dir, exist_ok=True)
     examples = []
 
-    df = pd.read_parquet(os.path.join(data_dir, "1M-GPT4-Augmented.parquet"))    
-    gpt4_examples = [row.to_dict() for _, row in df.iterrows()]
-    random.shuffle(gpt4_examples)
-    examples.extend(gpt4_examples[:num_gpt4_examples])
+    # df = pd.read_parquet(os.path.join(data_dir, "1M-GPT4-Augmented.parquet"))    
+    # gpt4_examples = [row.to_dict() for _, row in df.iterrows()]
+    # random.shuffle(gpt4_examples)
+    # examples.extend(gpt4_examples[:num_gpt4_examples])
 
     df = pd.read_parquet(os.path.join(data_dir, "3_5M-GPT3_5-Augmented.parquet"))
     gpt35_examples = [row.to_dict() for _, row in df.iterrows()]
@@ -616,7 +616,126 @@ def convert_science_data(data_dir, output_dir, num_examples=None):
                 ],
             }) + "\n")
 
+def convert_wildchat_data(data_dir, output_dir, num_examples=None, data_file="wildchat_data_split_2048.jsonl"):
+    os.makedirs(output_dir, exist_ok=True)
+    examples = []
+    with open(os.path.join(data_dir, data_file), "r") as fin:
+        for line in fin:
+            examples.append(json.loads(line))
+    if num_examples:
+        examples = random.sample(examples, k=num_examples)
+    output_path = os.path.join(output_dir, "wildchat_data.jsonl")
+    # keep the conversation column only
+    dataset = pd.DataFrame(examples)
+    # add a new column to store the conversation
+    dataset["dataset"] = "wildchat"
+    # rename the id to original_id
+    dataset.rename(columns={"id": "original_id"}, inplace=True)
+    dataset["id"] = dataset.index
+    # save as jsonl
+    dataset.to_json(output_path, orient="records", lines=True)
 
+def convert_slimorca_data(data_dir, output_dir, num_examples=None):
+    os.makedirs(output_dir, exist_ok=True)
+    examples = []
+    with open(os.path.join(data_dir, "oo-labeled_correct.gpt4.sharegpt.jsonl"), "r") as fin:
+        for line in fin:
+            examples.append(json.loads(line))
+    if num_examples:
+        examples = random.sample(examples, k=num_examples)
+    output_path = os.path.join(output_dir, "slimorca_data.jsonl")
+    role_mapping = {
+        "system": "system",
+        "human": "user",
+        "gpt": "assistant",
+    }
+
+    with open(output_path, "w") as fout:
+        for idx, example in enumerate(examples):
+            # example = [json.loads(line) for line in example['conversations']]
+            messages = []
+            for e in example['conversations']:
+                messages.append(
+                    {"role": role_mapping[e["from"]], "content": e["value"]}
+                )
+            fout.write(json.dumps({
+                "dataset": "slimorca",
+                "id": f"slimorca_{idx}",
+                "messages": messages,
+            }) + "\n")
+
+def convert_metamathqa_data(data_dir, output_dir, num_examples=None):
+    os.makedirs(output_dir, exist_ok=True)
+    # examples = []
+    with open(os.path.join(data_dir, "MetaMathQA-395K.json"), "r") as fin:
+        examples = json.load(fin)
+    if num_examples:
+        examples = random.sample(examples, k=num_examples)
+    output_path = os.path.join(output_dir, "metamathqa_data.jsonl")
+    prompt_template = "Write a response that appropriately completes the request.\n\n" "### Instruction:\n{instruction}\n\n### Response: Let's think step by step."
+    with open(output_path, "w") as fout:
+        print(examples[0])
+        for idx, example in enumerate(examples):
+            fout.write(json.dumps({
+                "dataset": "metamathqa",
+                "id": f"metamathqa_{idx}",
+                "messages": [
+                    {"role": "user", "content": prompt_template.format(instruction=example["query"])},
+                    {"role": "assistant", "content": example["response"]}
+                ],
+            }) + "\n")
+
+def convert_magicoder_data(data_dir, output_dir, num_examples=None):
+    os.makedirs(output_dir, exist_ok=True)
+    examples = []
+    with open(os.path.join(data_dir, "data-oss_instruct-decontaminated.jsonl"), "r") as fin:
+        for line in fin:
+            examples.append(json.loads(line))
+    if num_examples:
+        examples = random.sample(examples, k=num_examples)
+    output_path = os.path.join(output_dir, "magicoder_data.jsonl")
+    with open(output_path, "w") as fout:
+        for idx, example in enumerate(examples):
+            fout.write(json.dumps({
+                "dataset": "magicoder",
+                "id": f"magicoder_{idx}",
+                "messages": [
+                    {"role": "user", "content": example["problem"]},
+                    {"role": "assistant", "content": example["solution"]}
+                ],
+            }) + "\n")
+
+def convert_multilingual_alpaca_data(data_dir, output_dir, num_examples=None):
+    os.makedirs(output_dir, exist_ok=True)
+    examples = {}
+    # (bg, cs, de, en, es, fi, fr, pt, ru, zh)
+    lang = ["bg", "cs", "de", "en", "es", "fi", "fr", "pt", "ru", "zh"]
+    for l in lang:
+        with open(os.path.join(data_dir, f"alpaca_data_cleaned.{l}.json"), "r") as fin:
+            examples[l] = json.load(fin)
+    if num_examples:
+        examples = {k: random.sample(v, k=num_examples) for k, v in examples.items()}
+    output_path = os.path.join(output_dir, "multilingual_alpaca_data.jsonl")
+    with open(output_path, "w") as fout:
+        for l in lang:
+            for idx, example in enumerate(examples[l]):
+                encoded_example = encode_instruction_example(
+                    instruction=example["instruction"], 
+                    input=example["input"], 
+                    output=example["output"],
+                    random_template=True,
+                    eos_token=None
+                )
+                fout.write(json.dumps({
+                    "dataset": f"multilingual_alpaca.{l}",
+                    "id": f"multilingual_alpaca_{l}_{idx}",
+                    "lang": l,
+                    "messages": [
+                        {"role": "user", "content": encoded_example["prompt"]},
+                        {"role": "assistant", "content": encoded_example["completion"]},
+                    ]
+                }) + "\n")
+                
 
 def should_be_filtered(example):
     # we filter out conversations that contain some specific strings
@@ -673,8 +792,8 @@ if __name__ == "__main__":
         "--dataset", 
         type=str, 
         nargs="+",
-        choices=supported_datasets+["tulu_v1", "tulu_v2"],
-        default=supported_datasets+["tulu_v1", "tulu_v2"]
+        choices=supported_datasets+["tulu_v1", "tulu_v2", "cohere", "wizardlm+sharegpt"],
+        default=supported_datasets+["tulu_v1", "tulu_v2", "cohere", "wizardlm+sharegpt"]
     )
     arg_parser.add_argument(
         "--seed", 
@@ -813,6 +932,67 @@ if __name__ == "__main__":
                                 fout_filtered.write(line)
                             else:
                                 fout.write(line)
+        elif dataset == "cohere":
+            # contain 50k from ShareGPT, WizardLM, OpenORCA, MetaMath and 30k from Magicoder
+            print(f"Processing cohere subsets...")
+            convert_sharegpt_data(
+                data_dir=os.path.join(args.raw_data_dir, "sharegpt"), 
+                output_dir=os.path.join(args.output_dir, "cohere", "sharegpt_subset"),
+                data_file="sharegpt_html_cleaned_and_split_4096.json",
+                num_examples=30000
+            )
+            convert_wizardlm_data(
+                data_dir=os.path.join(args.raw_data_dir, "wizardlm"), 
+                output_dir=os.path.join(args.output_dir, "cohere", "wizardlm_subset"), 
+                num_examples=30000
+            )
+            convert_open_orca_data(
+                data_dir=os.path.join(args.raw_data_dir, "open_orca"), 
+                output_dir=os.path.join(args.output_dir, "cohere", "open_orca_subset"), 
+                num_gpt4_examples=25000, 
+                num_gpt35_examples=15000
+            )
+            convert_metamathqa_data(
+                data_dir=os.path.join(args.raw_data_dir, "metamathqa"), 
+                output_dir=os.path.join(args.output_dir, "cohere", "metamathqa_subset"), 
+                num_examples=30000
+            )
+            convert_magicoder_data(
+                data_dir=os.path.join(args.raw_data_dir, "magicoder"), 
+                output_dir=os.path.join(args.output_dir, "cohere", "magicoder_subset"), 
+                num_examples=20000
+            )
+            # merge all the subsets
+            print("Merging all the subsets to create cohere...")
+            all_subsets = [f for f in os.listdir(os.path.join(args.output_dir, "cohere")) if f.endswith("_subset")]
+            with open(os.path.join(args.output_dir, "cohere", "cohere_data.jsonl"), "w") as fout:
+                for subset in all_subsets:
+                    dataset_name = subset[:-len("_subset")]
+                    with open(os.path.join(args.output_dir, "cohere", subset, f"{dataset_name}_data.jsonl"), "r") as fin:
+                        for line in fin:
+                            fout.write(line)
+        elif dataset == "wizardlm+sharegpt":
+            print(f"Processing wizardlm+sharegpt subsets...")
+            convert_wizardlm_data(
+                data_dir=os.path.join(args.raw_data_dir, "wizardlm"), 
+                output_dir=os.path.join(args.output_dir, "wizardlm+sharegpt", "wizardlm_subset"), 
+                num_examples=None,
+            )
+            convert_sharegpt_data(
+                data_dir=os.path.join(args.raw_data_dir, "sharegpt"), 
+                output_dir=os.path.join(args.output_dir, "wizardlm+sharegpt", "sharegpt_subset"),
+                data_file="sharegpt_html_cleaned_and_split_4096.json",
+                num_examples=None
+            )
+            # merge all the subsets
+            print("Merging all the subsets to create wizardlm+sharegpt...")
+            all_subsets = [f for f in os.listdir(os.path.join(args.output_dir, "wizardlm+sharegpt")) if f.endswith("_subset")]
+            with open(os.path.join(args.output_dir, "wizardlm+sharegpt", "wizardlm+sharegpt_data.jsonl"), "w") as fout:
+                for subset in all_subsets:
+                    dataset_name = subset[:-len("_subset")]
+                    with open(os.path.join(args.output_dir, "wizardlm+sharegpt", subset, f"{dataset_name}_data.jsonl"), "r") as fin:
+                        for line in fin:
+                            fout.write(line)
         else:
             print(f"Processing {dataset} data with default configurations...")
-            globals()[f"convert_{dataset}_data"](os.path.join(args.raw_data_dir, dataset), os.path.join(args.output_dir, dataset))
+            globals()[f"convert_{dataset}_data"](os.path.join(args.raw_data_dir, dataset), os.path.join(args.output_dir, dataset), num_examples=None)

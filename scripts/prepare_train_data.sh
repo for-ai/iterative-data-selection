@@ -113,6 +113,12 @@ fi
 # echo "Downloading the HardCoded dataset..."
 # wget -P data/raw_train/hard_coded/ https://beaker.org/api/v3/datasets/01HBS14BBV16K45MMFSYJR86CA/files/hard_coded_examples.xlsx
 
+echo "Splitting the Wildchat dataset with 2048 max tokens per conversation..."
+python scripts/split_wildchat_conversations.py \
+    --in-file data/raw_train/wildchat/wildchat_data.jsonl \
+    --out-file data/raw_train/wildchat/wildchat_data_split_2048.jsonl \
+    --model-name-or-path meta-llama/Llama-2-7b-hf \
+    --max-length 2048
 
 # echo "Processing datasets..."
-python3 data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset cohere
+python3 data/reformat_datasets.py --raw_data_dir data/raw_train/ --output_dir data/processed/ --dataset wizardlm+sharegpt

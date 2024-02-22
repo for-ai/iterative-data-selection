@@ -22,7 +22,7 @@ def get_dataset(data_config: DictConfig):
         dataset = dataset.shuffle(seed=data_config.seed)
     if 'subsample' in data_config:
         dataset = dataset.select(range(int(data_config.subsample * len(dataset))))
-        
+
     dataset_name = dataset_path.split('/')[-1].split('_')[0]
     return dataset, dataset_name
 
@@ -31,6 +31,7 @@ def main(cfg: DictConfig) -> None:
     '''
     '''
     dataset, dataset_name = get_dataset(cfg.data)
+
     encoder_config = cfg.encoder
     encoder = AutoEncoder(encoder_config)
     embeddings = encoder.get_embeddings(dataset, cfg.data)
