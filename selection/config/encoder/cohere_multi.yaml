@@ -1,5 +1,0 @@
-model_name: 'embed-multilingual-v3.0'
-is_cohere: True
-is_cached: True
-concat_method: 'tulu_user_only'
-batch_size: 1024
