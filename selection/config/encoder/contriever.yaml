@@ -1,3 +1,0 @@
-model_name: 'facebook/contriever'
-is_sentence_transformer: False
-max_length_threshold: 2

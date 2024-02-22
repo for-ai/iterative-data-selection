@@ -1,4 +1,0 @@
-batch_size: 128
-model_name: 'sentence-transformers/all-MiniLM-L6-v2'
-is_sentence_transformer: True
-max_length_threshold: 4

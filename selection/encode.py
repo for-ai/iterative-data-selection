@@ -4,51 +4,36 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 from datasets import load_dataset
 import numpy as np
+import hydra
+from omegaconf import DictConfig, OmegaConf
 
-data_column = 'messages'
-model = 'meta-llama/Llama-2-7b-hf'
-concat_method = "tulu" # tulu or tulu_v1
-
-def concat_messages(messages, concat_method):
-    if concat_method == "tulu":
-        return concat_tulu_messages(messages)
-    elif concat_method == "tulu_v1":
-        template = get_default_conv_template(concat_method)
-        for message in messages:
-            role, content = message["role"], message["content"]
-            template.append_message(role, content)
-        return template.get_prompt()
-    elif concat_method == "tulu_user_only":
-        return concat_tulu_messages_only_user(messages)
+def get_dataset(data_config: DictConfig):
+    dataset_path = data_config.name
+    if dataset_path.endswith('json') or dataset_path.endswith('jsonl'):
+        dataset = load_dataset('json', data_files=dataset_path)
+    elif dataset_path.endswith('csv'):
+        dataset = load_dataset('csv', data_files=dataset_path)
     else:
-        raise ValueError(f"Invalid concat method: {concat_method}")
-    
-def extract_embeddings(dataset, model, concat_method):
-    config = {
-        "model_name": model,
-        'use_flash_attn': True,
-        'is_8bit': False,
-        'batch_size': 4,
-        'max_seq_length': 8070,
-    }
-    model = AutoEncoder(config)
-    messages = dataset[data_column]
-    sentences = [concat_messages(message, concat_method) for message in tqdm(messages, desc="Concatenating messages")]
-    embeddings = model.encode(sentences, batch_size=2, device='cuda', show_progress_bar=True)
-    return embeddings
-    
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='/mnt/ceph_rbd/data-selection/data/processed/wizardlm/wizardlm_data.jsonl')
-    parser.add_argument('--model', type=str, default='meta-llama/Llama-2-7b-hf')
-    parser.add_argument('--concat_method', type=str, default='tulu')
-    parser.add_argument('--output', type=str, default='/mnt/ceph_rbd/data-selection/data/processed/wizardlm/embeddings.npy')
-    args = parser.parse_args()
-    
-    dataset = load_dataset('json', data_files=args.dataset, split='train')
-    # select top 100
-    embeddings = extract_embeddings(dataset, args.model, args.concat_method)
-    np.save(args.output, embeddings)
+        dataset = load_dataset(dataset_path)
+    if 'split' in data_config:
+        dataset = dataset[data_config.split]
+
+    if 'seed' in data_config:
+        dataset = dataset.shuffle(seed=data_config.seed)
+    if 'subsample' in data_config:
+        dataset = dataset.select(range(int(data_config.subsample * len(dataset))))
+        
+    dataset_name = dataset_path.split('/')[-1].split('_')[0]
+    return dataset, dataset_name
+
+@hydra.main(config_path="config", config_name="config", version_base=None)
+def main(cfg: DictConfig) -> None:
+    '''
+    '''
+    dataset, dataset_name = get_dataset(cfg.data)
+    encoder_config = cfg.encoder
+    encoder = AutoEncoder(encoder_config)
+    embeddings = encoder.get_embeddings(dataset, cfg.data)
 
 if __name__ == "__main__":
     main()

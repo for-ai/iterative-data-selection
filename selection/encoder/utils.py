@@ -19,6 +19,10 @@ def concat_messages(messages, concat_method):
                 return template.get_prompt()
             elif concat_method == "tulu_user_only":
                 return concat_tulu_messages_only_user(messages)
+            elif concat_method == "tulu_first_user":
+                for message in messages:
+                    if message["role"] == "user":
+                        return message["content"]
             else:
                 raise ValueError(f"Invalid concat method: {concat_method}")
             

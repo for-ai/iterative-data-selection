@@ -4,4 +4,5 @@ label_column: 'dataset'
 data_column: 'messages'
 idx_column: 'id'
 scores_path: '/mnt/data/data-selection/data/processed/sharegpt/scores.jsonl'
-embedding_cache_path: '/mnt/data/data-selection/data/processed/sharegpt/Llama-2-7b-hf-embeddings.npy'
+subsample: 0.1
+seed: 42
