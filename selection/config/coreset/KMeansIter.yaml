@@ -1,0 +1,5 @@
+name: KMeansIter
+fraction: 0.1
+random_seed: 42
+K: 64
+rounds: 4

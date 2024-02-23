@@ -73,6 +73,8 @@ if __name__ == "__main__":
         base_model = AutoModelForCausalLM.from_pretrained(
             args.base_model_name_or_path if args.base_model_name_or_path else peft_config.base_model_name_or_path,
         )
+    base_model.resize_token_embeddings(32001)
+    
     print("Loading the lora model...")
     lora_model = PeftModel.from_pretrained(base_model, args.lora_model_name_or_path)
     print("Merging the lora modules...")
@@ -107,8 +109,8 @@ if __name__ == "__main__":
         tokenizer.save_pretrained(output_dir)
 
     # push to huggingface hub
-    print(f"Uploading to HuggingFace Hub with ID {args.push_to_hub_id}...")
-    if args.push_to_hub_id:
-        merged_model.push_to_hub(args.push_to_hub_id)
-        if args.save_tokenizer:
-            tokenizer.push_to_hub(args.push_to_hub_id)
+    # print(f"Uploading to HuggingFace Hub with ID {args.push_to_hub_id}...")
+    # if args.push_to_hub_id:
+    #     merged_model.push_to_hub(args.push_to_hub_id)
+    #     if args.save_tokenizer:
+    #         tokenizer.push_to_hub(args.push_to_hub_id)

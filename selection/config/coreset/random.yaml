@@ -1,0 +1,6 @@
+# Supported: Uniform, Random, KMeansCentroids, KMeansRandom, Uniform_Upsample
+# name: 'Uniform'
+# name: 'Random'
+name: 'Random'
+fraction: 0.1
+random_seed: 42

@@ -1,0 +1,7 @@
+name: '/mnt/data/data-selection/data/processed/wildchat/wildchat_data.jsonl'
+split: 'train'
+label_column: 'dataset'
+data_column: 'messages'
+idx_column: 'id'
+subsample: 0.1
+seed: 42

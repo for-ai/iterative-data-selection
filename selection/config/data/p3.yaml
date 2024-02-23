@@ -1,0 +1,4 @@
+name: 'simonycl/p3_0.5_dataset'
+split: 'train'
+label_column: 'dataset'
+data_column: 'input'

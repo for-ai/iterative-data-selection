@@ -16,6 +16,7 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 import copy
+import pickle
 
 import transformers
 from transformers import (
@@ -35,7 +36,7 @@ from transformers import (
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
 from utils.save import save_with_accelerate
 from utils.template import encode_with_prompt_completion_format, encode_with_messages_format
-from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task
+from eval.utils import encode_with_prompt_completion_format_eval, get_next_word_predictions, eval_nli_task, score_completions, score_qa_task
 
 logger = get_logger(__name__)
 
@@ -59,6 +60,13 @@ def parse_args():
         "--train_file", type=str, default=None, help="A csv or a json file containing the training data."
     )
     parser.add_argument(
+        "--tracker_model_name",
+        type=str,
+        default=None,
+        help="The name of the model to use for the trackers.",
+        required=False,
+    )
+    parser.add_argument(
         "--model_name_or_path",
         type=str,
         help="Path to pretrained model or model identifier from huggingface.co/models.",
@@ -69,6 +77,21 @@ def parse_args():
         type=str,
         default=None,
         help="Pretrained config name or path if not the same as model_name",
+    )
+
+    # Selection arguments
+    parser.add_argument(
+        '--selection_method',
+        type=str,
+        default=None,
+        help='The selection method to use.',
+        choices=["random", "uncertainty", "diversity", "uncertainty_diversity", "uncertainty_diversity_random"],
+    )
+    parser.add_argument(
+        '--selection_indices',
+        type=str,
+        default=None,
+        help='The path to the indices of the selected examples.',
     )
 
     # Evaluation arguments
@@ -87,16 +110,22 @@ def parse_args():
         help='The name of the dataset to use (via the datasets library).',
     )
     parser.add_argument(
-        '--eval_epochs',
-        type=int,
-        default=1,
-        help='Number of epochs between evaluations.',
+        '--eval_steps',
+        type=str,
+        default=None,
+        help='Number of steps between evaluations, or "epoch" to evaluate at the end of each epoch.',
     )
     parser.add_argument(
         '--eval_batch_size',
         type=int,
         default=2,
         help='Batch size for evaluation.',
+    )
+    parser.add_argument(
+        '--eval_task',
+        type=str,
+        default=None,
+        help='Task to evaluate on. Currently only supports "nli".',
     )
         
     # LORA arguments
@@ -185,7 +214,7 @@ def parse_args():
     parser.add_argument(
         "--warmup_ratio", type=float, default=0, help="Ratio of total training steps used for warmup."
     )
-
+    
     # Save and logging arguments
     parser.add_argument("--output_dir", type=str, default=None, help="Where to store the final model.")
     parser.add_argument("--seed", type=int, default=None, help="A seed for reproducible training.")
@@ -291,6 +320,9 @@ def main():
         accelerator_log_kwargs["project_dir"] = args.output_dir
 
     accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps, **accelerator_log_kwargs)
+    if (args.with_tracking) and (args.tracker_model_name is not None):
+        accelerator.init_trackers("open_instruct", config={}, init_kwargs={"wandb":{"name": args.tracker_model_name}})
+
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -322,20 +354,29 @@ def main():
             args.dataset_config_name,
         )
         # keep only the first 1000 examples for debugging
-        # raw_datasets['train'] = raw_datasets['train'][:100]
     else:
         data_files = {}
+        # only pick the top 1000 examples for debugging
         dataset_args = {}
         if args.train_file is not None:
-            data_files["train"] = args.train_file
+            data_files["train"] = args.train_file               
         raw_datasets = load_dataset(
             "json",
             data_files=data_files,
             **dataset_args,
         )
-        if args.do_eval:
-            if args.eval_file is not None:
-                data_files["test"] = args.eval_file                
+    if args.selection_indices is not None:
+        selection = pickle.load(open(args.selection_indices, "rb"))
+        raw_datasets['train'] = raw_datasets['train'].select(selection['indices'])
+    # raw_datasets['train'] = raw_datasets['train'].shard(1000, 1)
+
+    eval_data = None
+    if args.do_eval:
+        if args.eval_file is not None:
+            eval_raw_dataset = load_dataset(
+                "json",
+                data_files={"test": args.eval_file},
+            )
 
     # Load pretrained model and tokenizer
     if args.config_name:
@@ -384,6 +425,7 @@ def main():
                 config=config,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 use_flash_attention_2=True if args.use_flash_attn else False,
+                torch_dtype=torch.bfloat16,
             )
     else:
         logger.info("Training new model from scratch")
@@ -408,6 +450,12 @@ def main():
     elif isinstance(tokenizer, GPT2Tokenizer) and isinstance(model, OPTForCausalLM):
         num_added_tokens = tokenizer.add_special_tokens({'unk_token': '<unk>'})
 
+    # store the tokenizer
+    # if args.output_dir is not None:
+    #     if accelerator.is_main_process:
+    #         tokenizer.save_pretrained(args.output_dir)
+    #     accelerator.wait_for_everyone()
+
     # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
     # on a small vocab and want a smaller embedding size, remove this test.
     embedding_size = model.get_input_embeddings().weight.shape[0]
@@ -427,7 +475,14 @@ def main():
             lora_dropout=args.lora_dropout,
             target_modules=["q_proj", "o_proj", "v_proj", "k_proj", "gate_proj", "up_proj", "down_proj"]
         )
-        model = get_peft_model(model, peft_config)
+        if args.resume_from_checkpoint:
+            from peft import PeftModel
+            logger.info(f"Resuming from checkpoint: {args.resume_from_checkpoint}")
+            model = PeftModel.from_pretrained(model, args.resume_from_checkpoint, is_trainable=True)
+            # model._mark_only_adapters_as_trainable()
+            model.train()
+        else:
+            model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
 
     # Preprocessing the datasets.
@@ -443,19 +498,23 @@ def main():
             tokenizer=tokenizer,
             max_seq_length=args.max_seq_length,
         )
+    elif "input_ids" in raw_datasets["train"].column_names and "labels" in raw_datasets["train"].column_names:
+        # encode function is then an identity function
+        encode_function = lambda x: x
     else:
         raise ValueError("You need to have either 'input'&'output' or 'messages' in your column names.")
     
-    
     with accelerator.main_process_first():
+        # eval_dataset = None
+
         if args.do_eval:
+            # Specifically for P3 dataset
             if args.dataset_name is not None:
                 eval_dataset = raw_datasets['test']
+                # Filtering if only want to specific dataset
+                eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == "hellaswag")
                 if args.eval_dataset_name is not None:
                     eval_dataset = eval_dataset.filter(lambda example: example['dataset'] == args.eval_dataset_name)
-            else:
-                # TODO: support evaluation on a separate dataset
-                raise NotImplementedError("Evaluation on a separate dataset is not supported yet.")
 
         lm_datasets = raw_datasets.map(
             encode_function,
@@ -468,8 +527,27 @@ def main():
         lm_datasets.set_format(type="pt")
         lm_datasets = lm_datasets.filter(lambda example: (example['labels'] != -100).any())
 
-    train_dataset = lm_datasets["train"]
+        if args.do_eval:
+            if args.eval_file is not None:
+                eval_dataset = eval_raw_dataset.map(
+                    encode_function,
+                    batched=False,
+                    num_proc=args.preprocessing_num_workers,
+                    load_from_cache_file=not args.overwrite_cache,
+                    remove_columns=[name for name in eval_raw_dataset["test"].column_names if name not in ["input_ids", "labels", "attention_mask"]],
+                    desc="Tokenizing and reformatting instruction data",
+                )
+                eval_dataset.set_format(type="pt")
+                eval_dataset = eval_dataset.filter(lambda example: (example['labels'] != -100).any())
 
+    train_dataset = lm_datasets["train"]
+    if args.do_eval:
+        if eval_dataset is None:
+            eval_dataset = lm_datasets["test"]
+        else:
+            eval_dataset = eval_dataset["test"]
+
+    print(len(train_dataset))
     # Log a few random samples from the training set:
     for index in random.sample(range(len(train_dataset)), 3):
         logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
@@ -483,14 +561,22 @@ def main():
     )
 
     if args.do_eval:
-        eval_tokenizer = copy.deepcopy(tokenizer)
-        eval_tokenizer.padding_side = "left"
+        if args.eval_task and args.eval_task == "nli":
+            eval_tokenizer = copy.deepcopy(tokenizer)
+            eval_tokenizer.padding_side = "left"
 
-        eval_dataloader = DataLoader(
-            eval_dataset,
-            shuffle=False,
-            batch_size=args.eval_batch_size
-        )
+            eval_dataloader = DataLoader(
+                eval_dataset,
+                shuffle=False,
+                batch_size=args.eval_batch_size
+            )
+        else:
+            eval_dataloader = DataLoader(
+                eval_dataset,
+                shuffle=False,
+                collate_fn=DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model, padding="longest"),
+                batch_size=args.eval_batch_size
+            )
     
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -555,8 +641,11 @@ def main():
  
     # Figure out how many steps we should save the Accelerator states
     checkpointing_steps = args.checkpointing_steps
+    eval_steps = args.eval_steps
     if checkpointing_steps is not None and checkpointing_steps.isdigit():
         checkpointing_steps = int(checkpointing_steps)
+    if eval_steps is not None and eval_steps.isdigit():
+        eval_steps = int(eval_steps)
 
     # We need to initialize the trackers we use, and also store our configuration.
     # The trackers initializes automatically on the main process.
@@ -580,12 +669,14 @@ def main():
     progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
     completed_steps = 0
     starting_epoch = 0
-
+    resume_step = 0
+    
     # Potentially load in the weights and states from a previous save
     if args.resume_from_checkpoint:
         if args.resume_from_checkpoint is not None or args.resume_from_checkpoint != "":
             checkpoint_path = args.resume_from_checkpoint
-            path = os.path.basename(args.resume_from_checkpoint)
+            # path = os.path.basename(args.resume_from_checkpoint)
+            path = checkpoint_path
         else:
             # Get the most recent checkpoint
             dirs = [f.name for f in os.scandir(os.getcwd()) if f.is_dir()]
@@ -597,23 +688,25 @@ def main():
             path = os.path.basename(checkpoint_path)
 
         accelerator.print(f"Resumed from checkpoint: {checkpoint_path}")
-        accelerator.load_state(path)
-        # Extract `epoch_{i}` or `step_{i}`
-        training_difference = os.path.splitext(path)[0]
+        training_difference = os.path.basename(path)
 
         if "epoch" in training_difference:
             starting_epoch = int(training_difference.replace("epoch_", "")) + 1
             resume_step = None
             completed_steps = starting_epoch * num_update_steps_per_epoch
-        else:
+        elif "step" in training_difference:
             # need to multiply `gradient_accumulation_steps` to reflect real steps
             resume_step = (
                 int(training_difference.replace("step_", ""))
                 * args.gradient_accumulation_steps
             )
+            # resume_step = int(training_difference.replace("step_", ""))
             starting_epoch = resume_step // len(train_dataloader)
             completed_steps = resume_step // args.gradient_accumulation_steps
             resume_step -= starting_epoch * len(train_dataloader)
+
+        print("starting_epoch", starting_epoch)
+        print("completed_steps", completed_steps)
 
     # update the progress_bar if load from checkpoint
     progress_bar.update(completed_steps)
@@ -621,21 +714,51 @@ def main():
     # Initial eval
     if args.do_eval:
         model.eval()
-        eval_acc = 0
-        for step, batch in enumerate(tqdm(eval_dataloader)):
-            with torch.no_grad():
-                eval_acc += eval_nli_task(batch, model, eval_tokenizer)
+        if args.eval_task and args.eval_task == "nli":
+            eval_acc = 0
+            for step, batch in enumerate(tqdm(eval_dataloader)):
+                with torch.no_grad():
+                    eval_acc += eval_nli_task(batch, model, eval_tokenizer)
 
-        eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
+            eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataloader)
 
-        logger.info(f"  Initial Eval Acc: {eval_acc}")
-        if args.with_tracking:
-            accelerator.log(
-                {
-                    "eval_acc": eval_acc,
-                },
-                step=0,
+            logger.info(f"  Initial Eval Acc: {eval_acc}")
+            if args.with_tracking:
+                accelerator.log(
+                    {
+                        "eval_acc": eval_acc,
+                    },
+                    step=completed_steps,
             )
+        elif "output" in raw_datasets["train"].column_names:
+            if accelerator.is_main_process:
+                eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
+                logger.info(f"  Initial Eval Acc: {eval_acc}")
+                if args.with_tracking:
+                    accelerator.log(
+                        {
+                            "eval_acc": eval_acc,
+                        },
+                        step=completed_steps,
+                    )
+        else:
+            # Assume it's calculating the perplexity
+            eval_ppl = 0
+            for step, batch in enumerate(tqdm(eval_dataloader)):
+                with torch.no_grad():
+                    loss = model(**batch, use_cache=False).loss
+                    eval_ppl += torch.exp(loss)
+
+            eval_ppl = accelerator.gather(eval_ppl).sum().item() / len(eval_dataloader)
+
+            logger.info(f"  Initial Eval PPL: {eval_ppl}")
+            if args.with_tracking:
+                accelerator.log(
+                    {
+                        "eval_ppl": eval_ppl,
+                    },
+                    step=completed_steps,
+                )
 
     for epoch in range(starting_epoch, args.num_train_epochs):
         model.train()
@@ -654,67 +777,110 @@ def main():
 
         # Main training loop
         for step, batch in enumerate(active_dataloader):
-            with accelerator.accumulate(model):
-                # remove the labels from the batch
-                outputs = model(**batch, use_cache=False)                
+            try:
+                with accelerator.accumulate(model):
+                    # remove the labels from the batch
+                    outputs = model(**batch, use_cache=False)                
+                    loss = outputs.loss
+                    # We keep track of the loss at each logged step
+                    total_loss += loss.detach().float()
+                    accelerator.backward(loss)
+                    # clip gradient norm. don't do this with deepspeed
+                    if accelerator.sync_gradients and args.clip_grad_norm > 0:
+                        accelerator.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    lr_scheduler.step()
+
+                # Checks if the accelerator has performed an optimization step behind the scenes
+                if accelerator.sync_gradients:
+                    progress_bar.update(1)
+                    completed_steps += 1
+                    if args.logging_steps and completed_steps % args.logging_steps == 0:
+                        avg_loss = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps / args.logging_steps
+                        logger.info(f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}")
+                        if args.with_tracking:
+                            accelerator.log(
+                                {
+                                    "learning_rate": lr_scheduler.get_last_lr()[0],
+                                    "train_loss": avg_loss,
+                                },
+                                step=completed_steps,
+                            )
+                        total_loss = 0
+                        
+                    if isinstance(checkpointing_steps, int):
+                        if completed_steps % checkpointing_steps == 0:
+                            output_dir = f"step_{completed_steps}"
+                            if args.output_dir is not None:
+                                output_dir = os.path.join(args.output_dir, output_dir)
+                            save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
+
+                    if completed_steps >= args.max_train_steps:
+                        break
+            # Except any errors
+            except Exception as e:
+                print(e)
+                unwrapped_model = accelerator.unwrap_model(model)
+                outputs = unwrapped_model(**batch, use_cache=False)
                 loss = outputs.loss
-                # We keep track of the loss at each logged step
-                total_loss += loss.detach().float()
-                accelerator.backward(loss)
-                # clip gradient norm. don't do this with deepspeed
-                if accelerator.sync_gradients and args.clip_grad_norm > 0:
-                    accelerator.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
-                optimizer.step()
-                optimizer.zero_grad()
-                lr_scheduler.step()       
+                # output and stop
+                print("outputs", outputs)
+                print("loss", loss)
+                print("Failed to train on step", step)
+                import sys
+                sys.exit(1)
 
-            # Checks if the accelerator has performed an optimization step behind the scenes
-            if accelerator.sync_gradients:
-                progress_bar.update(1)
-                completed_steps += 1
-                if args.logging_steps and completed_steps % args.logging_steps == 0:
-                    avg_loss = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps / args.logging_steps
-                    logger.info(f"  Step: {completed_steps}, LR: {lr_scheduler.get_last_lr()[0]}, Loss: {avg_loss}")
-                    if args.with_tracking:
-                        accelerator.log(
-                            {
-                                "learning_rate": lr_scheduler.get_last_lr()[0],
-                                "train_loss": avg_loss,
-                            },
-                            step=completed_steps,
-                        )
-                    total_loss = 0
-                    
-                if isinstance(checkpointing_steps, int):
-                    if completed_steps % checkpointing_steps == 0:
-                        output_dir = f"step_{completed_steps}"
-                        if args.output_dir is not None:
-                            output_dir = os.path.join(args.output_dir, output_dir)
-                        save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
+            # Evaluate the model if needed
+            if (accelerator.sync_gradients) and (args.do_eval):
+                if isinstance(eval_steps, int) and (completed_steps % eval_steps == 0):
+                    model.eval()
+                    if args.eval_task and args.eval_task == "nli":
+                        eval_acc = 0
+                        for step, batch in enumerate(tqdm(eval_dataloader)):
+                            with torch.no_grad():
+                                eval_acc += eval_nli_task(batch, model, eval_tokenizer)
 
-                if completed_steps >= args.max_train_steps:
-                    break
+                        eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataloader)
 
-        # Evaluate the model if needed
-        if args.do_eval:
-            if epoch % args.eval_epochs == 0:
-                model.eval()
-                eval_acc = 0
-                for step, batch in enumerate(tqdm(eval_dataloader)):
-                    with torch.no_grad():
-                        eval_acc += eval_nli_task(batch, model, eval_tokenizer)
+                        logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
+                        if args.with_tracking:
+                            accelerator.log(
+                                {
+                                    "eval_acc": eval_acc,
+                                    
+                                },
+                                step=completed_steps,
+                            )
+                    elif "output" in raw_datasets["train"].column_names:
+                        if accelerator.is_main_process:
+                            eval_acc = score_qa_task(model, tokenizer, eval_dataset, args.eval_batch_size)
+                            logger.info(f"  Step: {completed_steps}, Eval Acc: {eval_acc}")
+                            if args.with_tracking:
+                                accelerator.log(
+                                    {
+                                        "eval_acc": eval_acc,
+                                    },
+                                    step=completed_steps,
+                                )
+                    else:
+                        eval_ppl = 0
+                        for step, batch in enumerate(tqdm(eval_dataloader)):
+                            with torch.no_grad():
+                                loss = model(**batch, use_cache=False).loss
+                                eval_ppl += torch.exp(loss)
 
-                eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataset)
+                        eval_ppl = accelerator.gather(eval_ppl).sum().item() / len(eval_dataloader)
 
-                logger.info(f"  Epoch: {epoch}, Eval Acc: {eval_acc}")
-                if args.with_tracking:
-                    accelerator.log(
-                        {
-                            "eval_acc": eval_acc,
-                        },
-                        step=epoch,
-                    )
-                model.train()
+                        logger.info(f"  Step: {completed_steps}, Eval PPL: {eval_ppl}")
+                        if args.with_tracking:
+                            accelerator.log(
+                                {
+                                    "eval_ppl": eval_ppl,
+                                },
+                                step=completed_steps,
+                            )
+                    model.train()
 
         if args.checkpointing_steps == "epoch":
             output_dir = f"epoch_{epoch}"
@@ -722,6 +888,44 @@ def main():
                 output_dir = os.path.join(args.output_dir, output_dir)
             save_with_accelerate(accelerator, model, tokenizer, output_dir, args)
 
+        if args.do_eval:
+            if args.eval_steps == "epoch":
+                model.eval()
+                if args.eval_task and args.eval_task == "nli":
+                    eval_acc = 0
+                    for step, batch in enumerate(tqdm(eval_dataloader)):
+                        with torch.no_grad():
+                            eval_acc += eval_nli_task(batch, model, eval_tokenizer)
+
+                    eval_acc = accelerator.gather(eval_acc).sum().item() / len(eval_dataloader)
+
+                    logger.info(f"  Epoch: {epoch}, Eval Acc: {eval_acc}")
+                    if args.with_tracking:
+                        accelerator.log(
+                            {
+                                "eval_acc": eval_acc,
+                            },
+                            step=epoch,
+                        )
+                else:
+                    eval_ppl = 0
+                    for step, batch in enumerate(tqdm(eval_dataloader)):
+                        with torch.no_grad():
+                            loss = model(**batch, use_cache=False).loss
+                            eval_ppl += torch.exp(loss)
+
+                    eval_ppl = accelerator.gather(eval_ppl).sum().item() / len(eval_dataloader)
+
+                    logger.info(f"  Epoch: {epoch}, Eval PPL: {eval_ppl}")
+                    if args.with_tracking:
+                        accelerator.log(
+                            {
+                                "eval_ppl": eval_ppl,
+                            },
+                            step=epoch,
+                        )
+                model.train()
+                
     if args.with_tracking:
         accelerator.end_training()
 

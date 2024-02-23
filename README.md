@@ -1,54 +1,50 @@
 # data-selection
 
-## Datasets
-
-### Dataset Specifications
-P3 Subset 
-
-| Dataset Name                                                                                                        | Category     |
-|---------------------------------------------------------------------------------------------------------------------|-------------|
-| rte                                    | `NLI` |
-| cb                                    | `NLI` |
-| anli_r1                                  | `NLI`  |
-| anli_r2                                  | `NLI`  |
-| anli_r3 | `NLI` |
-| copa | `SC` |
-| hellaswag                                        | `SC`  |
-| storycloze                                        | `SC`  |
-| winogrande                                        | `WSD`  |
-| wsc                                        | `WSD`  |
-| wic                                        | `CR`  |
-
-`NLI`: Natural Language Inference
-
-`SC`: Sentence Complement
-
-`WSD`: Word Sense Disambiguation
-
-`CR`: Coreference Resolution
-
-### Usage
-
-```python
-from datasets import load_dataset
-dataset = load_dataset('simonycl/p3_0.5_dataset')
-```
-The dataset is accessible in [simonycl/p3_0.5_dataset](https://huggingface.co/datasets/simonycl/p3_0.5_dataset) on HuggingFace Datasets Hub.
+## Dataset Specifications
+Check share documentation at Google Docs
 
 ## Finetuning
 
 ### Scripts
 ```bash
-# Galactica-1.3b (Following the 0.5% data settings)
-bash scripts/finetune_galactica_with_accelerate.sh
-
-# LLaMA-2-7B 
-bash scripts/finetune_llama_with_accelerate.sh
+# Llama-2-7b-hf (with accelerate and deepspeed)
+bash scripts/finetune_llama_with_accelerate.sh [SELECTION_METHOD]
 ```
 
 ## Coreset Selection
-Modify `selection/config.yaml` to change the dataset and coreset method settings.
+The hyperparameters and configurations are managed by [Hydra](https://hydra.cc/). The configurations are stored in `selection/config/`.
+You should run the code by executing `main.py` in the `selection` directory. You can also specify the hyperparameters by command line arguments.
 ```bash
 cd selection
-python main.py
+python main.py data=[sharegpt|wizardlm] encoder=miniLM coreset=random
+```
+The selected indices are stored under `selection/indices/`.
+
+## Directory Structure
+```
+.
+├── README.md
+├── __init__.py
+├── analysis  <- Analysis of the results
+├── data      <- where the data is stored
+├── ds_configs <- DeepSpeed configurations
+├── eval       <- Evaluation code
+├── finetune   <- Finetuning pipeline and code
+├── logs       <- Logs
+├── requirement.txt <- Requirements
+├── scripts    <- Scripts for finetuning
+├── selection  <- Coreset selection code
+    ├── __init__.py
+    ├── config  <- Hydra configuration files
+    ├── encode.py
+    ├── encoder <- Encoder code
+    ├── indices <- Indices of the selected coreset
+    ├── main.py <- Main entry point for selection
+    ├── methods <- Coreset selection methods
+    ├── p3_plot.ipynb
+    ├── plot.py
+    ├── plots
+    ├── scoring
+    ├── sharegpt_plot.ipynb
+    └── wizardlm_plot.ipynb
 ```
