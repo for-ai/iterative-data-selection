@@ -17,7 +17,7 @@ from encoder.utils import concat_tulu_messages, concat_tulu_messages_only_user, 
 import faiss
 
 class KMeansIter(CoresetMethod):
-    def __init__(self, dataset, data_config, method_config, encoder_config=None, K=64, rounds=4, iter_data=None):
+    def __init__(self, dataset, data_config, method_config, encoder_config=None, K=512, rounds=3, iter_data=None):
         super().__init__(dataset, data_config, method_config, encoder_config)
         self.K = K
         self._is_raking = False
@@ -50,7 +50,8 @@ class KMeansIter(CoresetMethod):
             indices_i = np.random.choice(indices_i, size=size, replace=False)
             final_indices = np.concatenate((final_indices, indices_i))
 
-        print(final_indices.shape)
+        
+        print('KMeansIter: selected {} samples'.format(len(final_indices)))
         return {
             'indices': final_indices, 
             'selected_indices': final_indices,

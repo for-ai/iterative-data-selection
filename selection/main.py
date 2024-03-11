@@ -62,7 +62,7 @@ def main(cfg: DictConfig) -> None:
         if '/' in encoder_name:
             encoder_name = encoder_name.split('/')[-1]
         output_name = output_name.replace('.pkl', f'_{encoder_name}.pkl')
-    if method_name == "KMenasRandomDeita":
+    if method_name in ["KMenasRandomDeita", "KMeansRandom"]:
         K = cfg.coreset.K
         output_name = output_name.replace('.pkl', f'_{str(K)}.pkl')
     if method_name == "KMeansIter":
