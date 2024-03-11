@@ -45,7 +45,7 @@ def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='meta-llama/Llama-2-7b-hf')
-    parser.add_argument('--adapter', type=str, default='simonycl/llama-2-7b-hf-cohere-KMeansIter-0.1-Llama-2-7b-hf-round-4-iter-0')
+    parser.add_argument('--adapter', type=str, default=None)
     parser.add_argument('--output_dir', type=str, default='selection/iter_data/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_4_iter_0.jsonl')
     parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--dataset', type=str, default='data/processed/cohere/cohere_data.jsonl')
@@ -267,8 +267,9 @@ def main():
     if len(tokenizer) > embedding_size:
         model.resize_token_embeddings(len(tokenizer))
 
-    from peft import PeftModel
-    peft_model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False)
+    if adapter_path is not None:
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False)
     # peft_model = peft_model.to(model.device)
 
     dataset = load_dataset('json', data_files=dataset_path, split='train')
@@ -290,7 +291,7 @@ def main():
 
         for i in trange(0, len(subset), BATCH_SIZE):
             batches = subset[i:i+BATCH_SIZE]
-            generated = generate_with_peft(tokenizer, peft_model, batches, num_return_sequences=args.num_return_sequences)
+            generated = generate_with_peft(tokenizer, model, batches, num_return_sequences=args.num_return_sequences)
             generated_content.extend(generated)
 
     accelerator.wait_for_everyone()
