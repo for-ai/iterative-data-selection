@@ -61,8 +61,8 @@ do
 
     python3 finetune/merge_lora.py \
         --base_model_name_or_path $MODEL_NAME_OR_PATH \
-        --lora_model_name_or_path output/data_selection_${MODEL_NAME}_lora \
-        --output_dir output/data_selection_${MODEL_NAME}_lora_merged/ \
+        --lora_model_name_or_path output/data_selection_${DATASET}_${MODEL_NAME}_lora \
+        --output_dir output/data_selection_${DATASET}_${MODEL_NAME}_lora_merged/ \
         --save_tokenizer
 
     mkdir -p eval_results
