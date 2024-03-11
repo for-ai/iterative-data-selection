@@ -46,7 +46,7 @@ accelerate launch \
     --lora_rank 64 \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
-    --num_train_epochs 6 \
+    --num_train_epochs 5 \
     --do_eval \
     --eval_file data/processed/ultrachat/test_1000.jsonl \
     --eval_steps 100 \
