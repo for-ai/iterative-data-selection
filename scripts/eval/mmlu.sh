@@ -5,38 +5,38 @@ CHECKPOINT_PATH=/mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sha
 MODEL_NAME=sharegpt-ft-llama-7B
 export OPENAI_API_KEY=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
 
-python -m eval.mmlu.run_eval \
-    --ntrain 0 \
-    --data_dir data/eval/mmlu \
-    --save_dir results/mmlu/${MODEL_NAME}-0shot-wo-chat \
-    --model_name_or_path $CHECKPOINT_PATH \
-    --tokenizer_name_or_path $CHECKPOINT_PATH \
-    --eval_batch_size 16 \
-    --load_in_8bit
+# python -m eval.mmlu.run_eval \
+#     --ntrain 0 \
+#     --data_dir data/eval/mmlu \
+#     --save_dir results/mmlu/${MODEL_NAME}-0shot-wo-chat \
+#     --model_name_or_path $CHECKPOINT_PATH \
+#     --tokenizer_name_or_path $CHECKPOINT_PATH \
+#     --eval_batch_size 16 \
+#     --load_in_8bit
 
 # # MMLU 5 shot
-python -m eval.mmlu.run_eval \
-    --ntrain 5 \
-    --data_dir data/eval/mmlu \
-    --save_dir results/mmlu/${MODEL_NAME}-5shot-wo-chat \
-    --model_name_or_path $CHECKPOINT_PATH \
-    --tokenizer_name_or_path $CHECKPOINT_PATH \
-    --eval_batch_size 4 \
-    --load_in_8bit
-    
-python -m eval.mmlu.run_eval \
-    --ntrain 0 \
-    --data_dir data/eval/mmlu \
-    --save_dir results/mmlu/${MODEL_NAME}-0shot \
-    --model_name_or_path $CHECKPOINT_PATH \
-    --tokenizer_name_or_path $CHECKPOINT_PATH \
-    --eval_batch_size 16 \
-    --load_in_8bit \
-    --use_chat_format \
-    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
+# python -m eval.mmlu.run_eval \
+#     --ntrain 5 \
+#     --data_dir data/eval/mmlu \
+#     --save_dir results/mmlu/${MODEL_NAME}-5shot-wo-chat \
+#     --model_name_or_path $CHECKPOINT_PATH \
+#     --tokenizer_name_or_path $CHECKPOINT_PATH \
+#     --eval_batch_size 4 \
+#     --load_in_8bit
+#     
+# python -m eval.mmlu.run_eval \
+#     --ntrain 0 \
+#     --data_dir data/eval/mmlu \
+#     --save_dir results/mmlu/${MODEL_NAME}-0shot \
+#     --model_name_or_path $CHECKPOINT_PATH \
+#     --tokenizer_name_or_path $CHECKPOINT_PATH \
+#     --eval_batch_size 16 \
+#     --load_in_8bit \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
 
 # # MMLU 5 shot
-python -m eval.mmlu.run_eval \
+python3 -m eval.mmlu.run_eval \
     --ntrain 5 \
     --data_dir data/eval/mmlu \
     --save_dir results/mmlu/${MODEL_NAME}-5shot \
