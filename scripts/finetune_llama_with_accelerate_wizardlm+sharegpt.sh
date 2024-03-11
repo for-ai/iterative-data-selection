@@ -35,7 +35,7 @@ do
         --tokenizer_name $MODEL_NAME_OR_PATH \
         --use_slow_tokenizer \
         --train_file $TRAIN_FILE \
-        --max_seq_length 4096 \
+        --max_seq_length 2048 \
         --preprocessing_num_workers 24 \
         --checkpointing_steps epoch \
         --per_device_train_batch_size $BATCH_SIZE_PER_GPU \
@@ -48,7 +48,7 @@ do
         --lora_rank 64 \
         --lora_alpha 16 \
         --lora_dropout 0.1 \
-        --num_train_epochs 5 \
+        --num_train_epochs 3 \
         --do_eval \
         --eval_file data/processed/ultrachat/test_1000.jsonl \
         --eval_steps 100 \
