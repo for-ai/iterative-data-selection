@@ -23,11 +23,9 @@ export OPENAI_API_KEY=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
 #     --tokenizer_name_or_path $CHECKPOINT_PATH \
 #     --eval_batch_size 4 \
 #     --load_in_8bit
-    
+
+#     
 # python -m eval.mmlu.run_eval \
-#     --ntrain 0 \
-#     --data_dir data/eval/mmlu \
-#     --save_dir results/mmlu/${MODEL_NAME}-0shot \
 #     --model_name_or_path $CHECKPOINT_PATH \
 #     --tokenizer_name_or_path $CHECKPOINT_PATH \
 #     --eval_batch_size 16 \
@@ -36,7 +34,7 @@ export OPENAI_API_KEY=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
 #     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
 
 # # MMLU 5 shot
-python -m eval.mmlu.run_eval \
+python3 -m eval.mmlu.run_eval \
     --ntrain 5 \
     --data_dir data/eval/mmlu \
     --save_dir results/mmlu/${MODEL_NAME}-5shot \
