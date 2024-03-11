@@ -289,8 +289,8 @@ def main():
     with accelerator.split_between_processes(input_outputs) as subset:
         generated_content = []
 
-        for i in trange(0, len(subset), BATCH_SIZE):
-            batches = subset[i:i+BATCH_SIZE]
+        for i in trange(0, len(subset), args.batch_size):
+            batches = subset[i:i+args.batch_size]
             generated = generate_with_peft(tokenizer, model, batches, num_return_sequences=args.num_return_sequences)
             generated_content.extend(generated)
 
