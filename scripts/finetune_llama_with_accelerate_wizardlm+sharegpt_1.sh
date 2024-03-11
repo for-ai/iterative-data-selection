@@ -59,18 +59,18 @@ do
     #     --logging_steps 10 \
     #     --report_to wandb
 
-    python3 finetune/merge_lora.py \
-        --base_model_name_or_path $MODEL_NAME_OR_PATH \
-        --lora_model_name_or_path output/data_selection_${DATASET}_${MODEL_NAME}_lora \
-        --output_dir output/data_selection_${DATASET}_${MODEL_NAME}_lora_merged/ \
-        --save_tokenizer
+    # python3 finetune/merge_lora.py \
+    #     --base_model_name_or_path $MODEL_NAME_OR_PATH \
+    #     --lora_model_name_or_path output/data_selection_${DATASET}_${MODEL_NAME}_lora \
+    #     --output_dir output/data_selection_${DATASET}_${MODEL_NAME}_lora_merged/ \
+    #     --save_tokenizer
 
     mkdir -p eval_results
     # Run evaluation on ARC, GSM8K, HellaSwag, TruthfulQA, and TrivialQA
-    bash lm-evaluation-harness/eval_model.sh output/data_selection_${MODEL_NAME}_lora_merged/ data_selection_$MODEL_NAME > eval_results/data_selection_$MODEL_NAME.log
+    bash lm-evaluation-harness/eval_model.sh output/data_selection_${DATASET}_${MODEL_NAME}_lora_merged/ data_selection_$MODEL_NAME > eval_results/data_selection_$MODEL_NAME.log
 
     # Evaluation script for MMLU, TydiQA and CodeX-HumanEval
-    bash scripts/eval/mmlu.sh output/data_selection_${MODEL_NAME}_lora_merged/ data_selection_$MODEL_NAME > eval_results/data_selection_$MODEL_NAME-mmlu.log
+    bash scripts/eval/mmlu.sh output/data_selection_${DATASET}_${MODEL_NAME}_lora_merged/ data_selection_$MODEL_NAME > eval_results/data_selection_$MODEL_NAME-mmlu.log
 done
 
 # nohup bash scripts/finetune_llama_with_accelerate.sh > logs/finetune_with_accelerate_Llama-2-7b-hf-sharegpt_lora_1.log 2>&1 &
