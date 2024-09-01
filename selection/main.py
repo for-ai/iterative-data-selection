@@ -11,6 +11,7 @@ import argparse
 import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from qdit import qdit_selection
     
 def get_dataset(data_config: DictConfig):
     dataset_path = data_config.name
@@ -53,7 +54,11 @@ def main(cfg: DictConfig) -> None:
     fraction = cfg.coreset.fraction
     encoder_config = cfg.encoder if 'encoder' in cfg else None
 
-    subset_indices = get_subset_indices(dataset, cfg.data, cfg.coreset, encoder_config)
+    if method_name == "QDIT":
+        data_quality = dataset['quality']
+        subset_indices = qdit_selection(dataset, data_quality, fraction * len(dataset), encoder_config.alpha)
+    else:
+        subset_indices = get_subset_indices(dataset, cfg.data, cfg.coreset, encoder_config)
     print(f"Selecting {method_name} subset of size {fraction}...")
 
     output_name = f'selection/indices/{dataset_name}_{method_name}_{str(fraction)}.pkl'
@@ -76,9 +81,3 @@ def main(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
     main()
-# nohup python main.py > logs/main.log 2>&1 &
-# export LD_LIBRARY_PATH=/mnt/data/selection/lib:$LD_LIBRARY_PATH
-
-# CUDA_VISIBLE_DEVICES=0 nohup python selection/main.py --multirun data=wizardlm,sharegpt coreset=KMenasRandomDeita encoder=llama > logs/llama.log 2>&1 &
-# CUDA_VISIBLE_DEVICES=1 nohup python selection/main.py --multirun data=wizardlm,sharegpt coreset=KMenasRandomDeita encoder=multilingual-e5,miniLM > logs/multilingual-e5.log 2>&1 &
-# python selection/main.py data=cohere coreset=KMeansDynamic encoder=llama

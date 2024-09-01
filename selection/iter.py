@@ -1,5 +1,3 @@
-# reference: https://medium.com/@geronimo7/llms-multi-gpu-inference-with-accelerate-5a8333e4c5db
-
 from accelerate import Accelerator
 from accelerate.utils import gather_object
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
@@ -46,10 +44,10 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='meta-llama/Llama-2-7b-hf')
     parser.add_argument('--adapter', type=str, default=None)
-    parser.add_argument('--output_dir', type=str, default='selection/iter_data/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_4_iter_0.jsonl')
+    parser.add_argument('--output_dir', type=str, default='selection/iter_data/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_3_iter_0.jsonl')
     parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--dataset', type=str, default='data/processed/cohere/cohere_data.jsonl')
-    parser.add_argument('--indices', type=str, default='selection/indices/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_4_iter_0.pkl')
+    parser.add_argument('--indices', type=str, default='selection/indices/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_3_iter_0.pkl')
     parser.add_argument('--portion', type=float, default=1.0)
     parser.add_argument('--num_return_sequences', type=int, default=1)
     parser.add_argument('--use_rm', action='store_true')
