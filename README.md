@@ -3,10 +3,10 @@
 This repository contains the official code for the paper: [Efficient Instruction Data Selection
 via Clustering and Iterative Refinement](https://arxiv.org/abs/2405.10331).
 
-![KMQ Visualization](visual/kmq.jpg)
+<img src="visual/kmq.jpg" alt="KMQ Visualization" width="400">
 
 
-## Dataset
+### Dataset
 
 To download the datasets used in this project, run [this script](https://github.com/allenai/open-instruct/blob/main/scripts/data/prepare_train_data.sh). We used Alpaca, ShareGPT and WizardLM datasets for training and evaluation.
 
@@ -14,10 +14,8 @@ After downloading, datasets will be stored in the `data/processed` directory of 
 
 
 
-## Finetuning
 
-
-## Coreset Selection
+### Coreset Selection
 The hyperparameters and configurations are managed by [Hydra](https://hydra.cc/). The configurations are stored in `selection/config/`.
 You should run the code by executing `main.py` in the `selection` directory. You can also specify the hyperparameters by command line arguments.
 ```bash
@@ -32,6 +30,7 @@ The selected indices are stored under `selection/indices/`.
 # Llama-2-7b-hf (with accelerate and deepspeed)
 bash scripts/finetune_llama_with_accelerate.sh [INDICES]
 ```
+Iterative selection is implemented in the `scripts/iter/` directory.
 
 ### Evaluation
 ```bash
