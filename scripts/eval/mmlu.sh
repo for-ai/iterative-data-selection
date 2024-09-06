@@ -1,42 +1,40 @@
-# Here we use 1 GPU for demonstration, but you can use multiple GPUs and larger eval_batch_size to speed up the evaluation.
-# nohup bash scripts/eval/mmlu.sh > logs/eval_mmlu_Llama-2-7b-hf-sharegpt_lora_1.log 2>&1 &
-export CUDA_VISIBLE_DEVICES=0,1
-CHECKPOINT_PATH=/mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged
-MODEL_NAME=sharegpt-ft-llama-7B
+export CUDA_VISIBLE_DEVICES=0
+CHECKPOINT_PATH=$1
+MODEL_NAME=$2
+# CHECKPOINT_PATH=/mnt/data/data-selection/output/data_selection_Llama-2-7b-hf-sharegpt_lora_merged
+# MODEL_NAME=sharegpt-ft-llama-7B
 export OPENAI_API_KEY=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
 
-python -m eval.mmlu.run_eval \
-    --ntrain 0 \
-    --data_dir data/eval/mmlu \
-    --save_dir results/mmlu/${MODEL_NAME}-0shot-wo-chat \
-    --model_name_or_path $CHECKPOINT_PATH \
-    --tokenizer_name_or_path $CHECKPOINT_PATH \
-    --eval_batch_size 16 \
-    --load_in_8bit
+# python -m eval.mmlu.run_eval \
+#     --ntrain 0 \
+#     --data_dir data/eval/mmlu \
+#     --save_dir results/mmlu/${MODEL_NAME}-0shot-wo-chat \
+#     --model_name_or_path $CHECKPOINT_PATH \
+#     --tokenizer_name_or_path $CHECKPOINT_PATH \
+#     --eval_batch_size 16 \
+#     --load_in_8bit
+
+# # # MMLU 5 shot
+# python -m eval.mmlu.run_eval \
+#     --ntrain 5 \
+#     --data_dir data/eval/mmlu \
+#     --save_dir results/mmlu/${MODEL_NAME}-5shot-wo-chat \
+#     --model_name_or_path $CHECKPOINT_PATH \
+#     --tokenizer_name_or_path $CHECKPOINT_PATH \
+#     --eval_batch_size 4 \
+#     --load_in_8bit
+
+#     
+# python -m eval.mmlu.run_eval \
+#     --model_name_or_path $CHECKPOINT_PATH \
+#     --tokenizer_name_or_path $CHECKPOINT_PATH \
+#     --eval_batch_size 16 \
+#     --load_in_8bit \
+#     --use_chat_format \
+#     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
 
 # # MMLU 5 shot
-python -m eval.mmlu.run_eval \
-    --ntrain 5 \
-    --data_dir data/eval/mmlu \
-    --save_dir results/mmlu/${MODEL_NAME}-5shot-wo-chat \
-    --model_name_or_path $CHECKPOINT_PATH \
-    --tokenizer_name_or_path $CHECKPOINT_PATH \
-    --eval_batch_size 4 \
-    --load_in_8bit
-    
-python -m eval.mmlu.run_eval \
-    --ntrain 0 \
-    --data_dir data/eval/mmlu \
-    --save_dir results/mmlu/${MODEL_NAME}-0shot \
-    --model_name_or_path $CHECKPOINT_PATH \
-    --tokenizer_name_or_path $CHECKPOINT_PATH \
-    --eval_batch_size 16 \
-    --load_in_8bit \
-    --use_chat_format \
-    --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
-
-# # MMLU 5 shot
-python -m eval.mmlu.run_eval \
+python3 -m eval.mmlu.run_eval \
     --ntrain 5 \
     --data_dir data/eval/mmlu \
     --save_dir results/mmlu/${MODEL_NAME}-5shot \
@@ -46,6 +44,17 @@ python -m eval.mmlu.run_eval \
     --load_in_8bit \
     --use_chat_format \
     --chat_formatting_function eval.templates.create_prompt_with_tulu_chat_format
+
+# CodeEval
+python3 -m eval.codex_humaneval.run_eval \
+    --data_file data/eval/codex_humaneval/HumanEval.jsonl.gz \
+    --eval_pass_at_ks 10 \
+    --unbiased_sampling_size_n 20 \
+    --temperature 0.8 \
+    --save_dir results/codex_humaneval/{$MODEL_NAME}_temp_0_8 \
+    --model $CHECKPOINT_PATH \
+    --tokenizer $CHECKPOINT_PATH \
+    --use_vllm
 
 # Evaluating llama 7B model using 0 shot directly
 # python -m eval.mmlu.run_eval \

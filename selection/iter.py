@@ -1,5 +1,3 @@
-# reference: https://medium.com/@geronimo7/llms-multi-gpu-inference-with-accelerate-5a8333e4c5db
-
 from accelerate import Accelerator
 from accelerate.utils import gather_object
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
@@ -45,14 +43,15 @@ def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='meta-llama/Llama-2-7b-hf')
-    parser.add_argument('--adapter', type=str, default='simonycl/llama-2-7b-hf-cohere-KMeansIter-0.1-Llama-2-7b-hf-round-4-iter-0')
-    parser.add_argument('--output_dir', type=str, default='selection/iter_data/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_4_iter_0.jsonl')
+    parser.add_argument('--adapter', type=str, default=None)
+    parser.add_argument('--output_dir', type=str, default='selection/iter_data/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_3_iter_0.jsonl')
     parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--dataset', type=str, default='data/processed/cohere/cohere_data.jsonl')
-    parser.add_argument('--indices', type=str, default='selection/indices/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_4_iter_0.pkl')
+    parser.add_argument('--indices', type=str, default='selection/indices/cohere_KMeansIter_0.1_Llama-2-7b-hf_round_3_iter_0.pkl')
     parser.add_argument('--portion', type=float, default=1.0)
     parser.add_argument('--num_return_sequences', type=int, default=1)
     parser.add_argument('--use_rm', action='store_true')
+    parser.add_argument('--reward_model', type=str, choices=["ppl", "chatgpt", "raft"])
     return parser.parse_args()
 
 def encode_messages_input_output(messages):
@@ -174,7 +173,25 @@ def rm_pipeline(output_dir):
 
     return rewards_gathered
 
-def select_new_iter(rewards_gathered, dataset, indices_path):
+def chatgpt_pipeline(output_dir):
+    pass
+
+def calculate_ppl(tokenizer, model, batches):
+    tokenized_inputs = tokenizer(
+        [batch['input'] + batch['output'] for batch in batches],
+        return_tensors="pt", 
+        padding="longest", 
+        truncation=True, 
+        max_length=2048,
+        ).to(model.device) # (batch_size, max_length)
+
+    with torch.no_grad():
+        outputs = model(**tokenized_inputs, labels=tokenized_inputs['input_ids'])
+        loss = outputs.loss
+        ppl = torch.exp(loss)
+    return ppl.cpu().tolist()
+
+def select_new_iter(rewards_gathered, dataset, indices_path, calculate_method="exp_reward_diff"):
     '''
     {
         'indices': # the indices needed to be selected
@@ -194,9 +211,12 @@ def select_new_iter(rewards_gathered, dataset, indices_path):
     selected_indices = indices_detail['selected_indices']
 
     rewards_df = pd.DataFrame(rewards_gathered)
-    rewards_df[['human_reward', 'generated_reward']] = pd.DataFrame(rewards_df['reward'].tolist(), index=rewards_df.index)
-    rewards_df = rewards_df.drop(columns=['reward'])
-    rewards_df['reward_diff'] = rewards_df['human_reward'] - rewards_df['generated_reward']
+    if calculate_method == "ppl":
+        rewards_df['reward_diff'] = rewards_df['reward']
+    else:
+        rewards_df[['human_reward', 'generated_reward']] = pd.DataFrame(rewards_df['reward'].tolist(), index=rewards_df.index)
+        rewards_df = rewards_df.drop(columns=['reward'])
+        rewards_df['reward_diff'] = rewards_df['human_reward'] - rewards_df['generated_reward']
 
     dataset = dataset.add_column('cluster', clusters)
     dataset = dataset.add_column('index', range(len(dataset)))
@@ -206,8 +226,11 @@ def select_new_iter(rewards_gathered, dataset, indices_path):
 
     merged_df = subset_df.merge(rewards_df, left_index=True, right_index=True)
     merged_df = merged_df.groupby('cluster')['reward_diff'].mean().reset_index()
-    merged_df['exp_reward_diff'] = np.exp(merged_df['reward_diff'])
-    merged_df['exp_reward_diff'] = merged_df['exp_reward_diff'] / merged_df['exp_reward_diff'].sum()
+    if calculate_method == "ppl":
+        merged_df['exp_reward_diff'] = merged_df['reward_diff']
+    else:
+        merged_df['exp_reward_diff'] = np.exp(merged_df['reward_diff'])
+        merged_df['exp_reward_diff'] = merged_df['exp_reward_diff'] / merged_df['exp_reward_diff'].sum()
     
     size = (len(dataset) * portion) / K / round
     exp_reward_diff = merged_df['exp_reward_diff']
@@ -267,8 +290,9 @@ def main():
     if len(tokenizer) > embedding_size:
         model.resize_token_embeddings(len(tokenizer))
 
-    from peft import PeftModel
-    peft_model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False)
+    if adapter_path is not None:
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False)
     # peft_model = peft_model.to(model.device)
 
     dataset = load_dataset('json', data_files=dataset_path, split='train')
@@ -285,30 +309,58 @@ def main():
 
     accelerator.wait_for_everyone()
 
-    with accelerator.split_between_processes(input_outputs) as subset:
-        generated_content = []
+    if args.reward_model == "ppl":
+        with accelerator.split_between_processes(input_outputs) as subset:
+            perplexities = []
 
-        for i in trange(0, len(subset), BATCH_SIZE):
-            batches = subset[i:i+BATCH_SIZE]
-            generated = generate_with_peft(tokenizer, peft_model, batches, num_return_sequences=args.num_return_sequences)
-            generated_content.extend(generated)
+            for i in trange(0, len(subset), args.batch_size):
+                batches = subset[i:i+args.batch_size]
+                perplexity = calculate_ppl(tokenizer, model, batches)
+                perplexities.extend(perplexity)
+        
+        accelerator.wait_for_everyone()
 
-    accelerator.wait_for_everyone()
-    
-    generated_content_gathered = gather_object(generated_content)
+        perplexities_gathered = gather_object(perplexities)
+        print(f"Saving perplexities to {output_dir}")
+        if accelerator.is_main_process:
+            with open(output_dir, "w") as f:
+                for i, perplexity in enumerate(perplexities_gathered):
+                    f.write(json.dumps({
+                        'input': input_outputs[i]['input'],
+                        'human': input_outputs[i]['output'],
+                        'ppl': perplexity
+                    }) + "\n")
+        perplexities_gathered = [{"reward": ppl} for ppl in perplexities_gathered]
+    else:
+        with accelerator.split_between_processes(input_outputs) as subset:
+            generated_content = []
 
-    print(f"Saving generated content to {output_dir}")
-    if accelerator.is_main_process:
-        with open(output_dir, "w") as f:
-            for content in generated_content_gathered:
-                f.write(json.dumps(content) + "\n")
+            for i in trange(0, len(subset), args.batch_size):
+                batches = subset[i:i+args.batch_size]
+                generated = generate_with_peft(tokenizer, model, batches, num_return_sequences=args.num_return_sequences)
+                generated_content.extend(generated)
+
+        accelerator.wait_for_everyone()
+        
+        generated_content_gathered = gather_object(generated_content)
+
+        print(f"Saving generated content to {output_dir}")
+        if accelerator.is_main_process:
+            with open(output_dir, "w") as f:
+                for content in generated_content_gathered:
+                    f.write(json.dumps(content) + "\n")
 
     accelerator.wait_for_everyone()
 
     print(f"Finished generating rewards for {output_dir}")
 
     print(f"Generating rewards for {output_dir}")
-    rewards_gathered = rm_pipeline(output_dir)
+    if args.reward_model == "raft":
+        rewards_gathered = rm_pipeline(output_dir)
+    elif args.reward_model == "chatgpt":
+        rewards_gathered = chatgpt_pipeline(output_dir)
+    elif args.reward_model == "ppl":
+        rewards_gathered = perplexities_gathered
 
     print(f"Selecting new indices for {output_dir}")
     new_indices_path = select_new_iter(rewards_gathered, dataset, indices_path)

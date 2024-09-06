@@ -26,7 +26,7 @@ mv data/downloads/mmlu_data/data data/eval/mmlu && rm -r data/downloads/mmlu_dat
 
 
 # Codex HumanEval
-# wget -P data/eval/codex_humaneval https://github.com/openai/human-eval/raw/master/data/HumanEval.jsonl.gz
+wget -P data/eval/codex_humaneval https://github.com/openai/human-eval/raw/master/data/HumanEval.jsonl.gz
 
 
 # Alpaca Farm reference

@@ -8,6 +8,15 @@ __pycache__/
 
 selection/outputs/*
 selection/multirun/*
+*.out
+data/processed/
+multirun/
+logs/
+output/
+outputs/
+tmp*
+wandb/
+*.pkl
 
 # Distribution / packaging
 .Python
