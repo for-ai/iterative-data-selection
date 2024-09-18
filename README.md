@@ -1,7 +1,7 @@
 # Selecting Diverse Instructions
 
-This repository contains the official code for the paper: [Efficient Instruction Data Selection
-via Clustering and Iterative Refinement](https://arxiv.org/abs/2405.10331).
+This repository contains the official code for the paper: [Diversify and Conquer: Diversity-Centric Data
+Selection with Iterative Refinement](https://arxiv.org/abs/2409.11378).
 
 <img src="visual/kmq.jpg" alt="KMQ Visualization" width="400">
 
@@ -45,10 +45,12 @@ This code is based on the following repository:
 ### Citation
 If you find this code useful, please cite our paper:
 ```
-@article{
-  author = {...},
-  title = {Efficient Instruction Data Selection via Clustering and Iterative Refinement},
-  journal = {arXiv preprint arXiv:2405.10331},
-  year = {2024}
+@misc{yu2024diversify,
+    title={Diversify and Conquer: Diversity-Centric Data Selection with Iterative Refinement},
+    author={Simon Yu and Liangyu Chen and Sara Ahmadian and Marzieh Fadaee},
+    year={2024},
+    eprint={2409.11378},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
 }
 ```
