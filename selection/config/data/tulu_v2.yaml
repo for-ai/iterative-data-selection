@@ -1,0 +1,6 @@
+name: '/mnt/data/sparseIT/data/processed/tulu_v2/tulu_v2_data.jsonl'
+split: 'train'
+label_column: 'dataset'
+data_column: 'messages'
+idx_column: 'id'
+embedding_cache_path: '/mnt/data/sparseIT/data/processed/tulu_v2/tulu_v2_embeddings.npy'

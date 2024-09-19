@@ -1,0 +1,6 @@
+batch_size: 256
+model_name: 'intfloat/e5-large-v2'
+is_sentence_transformer: True
+max_length_threshold: 4
+is_cached: True
+concat_method: 'tulu_user_only'
