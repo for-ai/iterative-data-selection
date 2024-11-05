@@ -5,11 +5,13 @@ import numpy as np
 from tqdm import tqdm, trange
 from concurrent.futures import ThreadPoolExecutor
 import cohere
+import os
 
 class CohereEncoder(Encoder):
     def __init__(self, config):
         super().__init__(config)
-        self.co = cohere.Client("nNjVPgvGPgpCePFCcXDmhmuYFwYnKR7vlMAgofo9")
+        cohere_api_key = os.getenv("COHERE_API_KEY")
+        self.co = cohere.Client(cohere_api_key)
         self.model_name = config['model_name']
         self.max_seq_length = 512
         self.hidden_size = 1024

@@ -8,7 +8,6 @@ from openai import OpenAI, RateLimitError
 import backoff
 import os
 import time
-os.environ['OPENAI_API_KEY'] = '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'
 
 import tiktoken
 

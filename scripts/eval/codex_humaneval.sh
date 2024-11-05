@@ -1,9 +1,7 @@
 # Here we use 1 GPU for demonstration, but you can use multiple GPUs and larger eval_batch_size to speed up the evaluation.
 export CUDA_VISIBLE_DEVICES=0,1
-export OPENAI_API_KEY=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
 
-# for model in /mnt/ceph_rbd/data-selection/output/data_selection_llama-2-7b-hf-cohere-KMenasRandomDeita-0.05-Llama-2-7b-hf-2e-5-1024-norm
-for model in /mnt/ceph_rbd/data-selection/output/data_selection_llama-2-7b-hf-cohere-KCenterGreedyDeita-0.05-Llama-2-7b-hf-2e-5-norm
+for model in data-selection/output/data_selection_llama-2-7b-hf-cohere-KCenterGreedyDeita-0.05-Llama-2-7b-hf-2e-5-norm
 do
     model_name=$(echo $model | tr '/' '-' | cut -d '-' -f 2-) # output: llama-2-7b-hf-cohere-Random-0.05
     # Evaluating llama 7B model using temperature 0.1 to get the pass@1 score
